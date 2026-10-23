@@ -1,6 +1,6 @@
 {
   "name": "activity-utility",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Activity tracker with Google Sheets, email, and CRM integration",
   "main": "main.js",
   "scripts": {

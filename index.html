@@ -9,9 +9,7 @@
     body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
     /* ── Name screen ── */
-    #nameScreen {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
-    }
+    #nameScreen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
     #nameScreen h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
     #nameScreen p  { font-size: 0.9rem; color: #666; }
     #nameInput {
@@ -23,34 +21,25 @@
     #startBtn {
       width: 320px; padding: 0.75rem; background: #4caf87; color: #0a0a0a;
       border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s; opacity: 0.4;
     }
-    #startBtn:hover { opacity: 0.85; }
-    #startBtn:disabled { opacity: 0.4; cursor: default; }
+    #startBtn.ready { opacity: 1; cursor: pointer; }
 
     /* ── Dashboard ── */
     #dashboard { flex: 1; display: none; flex-direction: column; overflow: hidden; }
 
-    header {
-      padding: 0.6rem 1.25rem; background: #1a1a1a; border-bottom: 1px solid #222;
-      display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;
-    }
+    header { padding: 0.6rem 1.25rem; background: #1a1a1a; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
     header h1 { font-size: 0.95rem; font-weight: 600; flex: 1; }
-    .user-chip {
-      background: #1e3a2f; color: #4caf87; padding: 0.2rem 0.75rem;
-      border-radius: 999px; font-size: 0.75rem; font-weight: 600;
-    }
+    .user-chip { background: #1e3a2f; color: #4caf87; padding: 0.2rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
     .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 500; }
     .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-    .badge.active  { background: #1e3a2f; color: #4caf87; }
-    .badge.idle    { background: #3a2a1e; color: #c89050; }
-    .badge.offline { background: #3a1e1e; color: #cf6679; }
+    .badge.active { background: #1e3a2f; color: #4caf87; }
+    .badge.idle   { background: #3a2a1e; color: #c89050; }
 
     .layout { display: flex; flex: 1; overflow: hidden; }
 
-    /* ── Sidebar ── */
     aside { width: 200px; background: #111; border-right: 1px solid #222; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
-    aside h2 { padding: 0.9rem 0.9rem 0.4rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #555; flex-shrink: 0; }
+    aside h2 { padding: 0.9rem 0.9rem 0.4rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
     #statsList { padding: 0 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .stat-card { background: #1a1a1a; border: 1px solid #252525; border-radius: 6px; padding: 0.6rem 0.75rem; }
     .stat-card .label { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2rem; }
@@ -58,86 +47,58 @@
     .stat-card .value.green { color: #4caf87; }
     .stat-card .value.amber { color: #c89050; }
 
-    /* ── Main ── */
     main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     .date-bar { padding: 0.6rem 1.25rem; background: #141414; border-bottom: 1px solid #1e1e1e; font-size: 0.78rem; color: #666; flex-shrink: 0; }
-
     .timeline-wrap { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
 
-    .entry {
-      background: #151515; border: 1px solid #222; border-radius: 8px;
-      padding: 0.75rem 1rem; display: flex; align-items: flex-start; gap: 1rem;
-      animation: fadeIn 0.2s;
-    }
+    .entry { background: #151515; border: 1px solid #222; border-radius: 8px; padding: 0.75rem 1rem; display: flex; align-items: flex-start; gap: 1rem; animation: fadeIn 0.2s; }
     .entry.active-entry { border-left: 3px solid #4caf87; }
     .entry.idle-entry   { border-left: 3px solid #c89050; }
-
-    .entry-time { font-size: 0.75rem; color: #555; white-space: nowrap; min-width: 130px; padding-top: 0.1rem; }
-    .entry-body { flex: 1; }
+    .entry-time   { font-size: 0.75rem; color: #555; white-space: nowrap; min-width: 130px; padding-top: 0.1rem; }
+    .entry-body   { flex: 1; }
     .entry-status { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem; }
     .entry-status.active { color: #4caf87; }
     .entry-status.idle   { color: #c89050; }
-    .entry-dur  { font-size: 0.72rem; color: #555; }
-
+    .entry-dur    { font-size: 0.72rem; color: #555; }
     .entry-actions { display: flex; gap: 0.4rem; align-items: center; }
-    .btn-adj {
-      background: none; border: 1px solid #333; border-radius: 4px; color: #888;
-      font-size: 0.7rem; padding: 0.2rem 0.6rem; cursor: pointer; transition: all 0.15s;
-    }
+
+    .btn-adj { background: none; border: 1px solid #333; border-radius: 4px; color: #888; font-size: 0.7rem; padding: 0.2rem 0.6rem; cursor: pointer; transition: all 0.15s; }
     .btn-adj:hover { border-color: #c89050; color: #c89050; }
     .btn-adj.sent  { border-color: #4caf87; color: #4caf87; cursor: default; }
 
-    .adj-form { margin-top: 0.5rem; display: flex; gap: 0.4rem; }
-    .adj-input {
-      flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px;
-      padding: 0.3rem 0.6rem; color: #e0e0e0; font-size: 0.78rem; outline: none;
-    }
+    .adj-form  { margin-top: 0.5rem; display: flex; gap: 0.4rem; }
+    .adj-input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 0.3rem 0.6rem; color: #e0e0e0; font-size: 0.78rem; outline: none; }
     .adj-input:focus { border-color: #c89050; }
-    .btn-send { background: #c89050; color: #0a0a0a; border: none; border-radius: 4px; padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+    .btn-send  { background: #c89050; color: #0a0a0a; border: none; border-radius: 4px; padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
 
     .empty { color: #333; font-size: 0.85rem; padding: 2rem; text-align: center; }
-
-  
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
   </style>
 </head>
 <body>
 
-<!-- Name screen -->
 <div id="nameScreen">
   <h1>Activity Tracker</h1>
   <p>Enter your name to start tracking</p>
   <input type="text" id="nameInput" placeholder="Your name…" autocomplete="off" />
-  <button id="startBtn" disabled>Start Tracking</button>
+  <button id="startBtn" onclick="submitName()">Start Tracking</button>
 </div>
 
-<!-- Dashboard -->
 <div id="dashboard">
   <header>
     <h1>Activity Tracker</h1>
     <span id="userChip" class="user-chip"></span>
     <span id="statusBadge" class="badge active">Active</span>
   </header>
-
   <div class="layout">
     <aside>
       <h2>Today</h2>
       <div id="statsList">
-        <div class="stat-card">
-          <div class="label">Active Time</div>
-          <div class="value green" id="statActive">0m</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Idle Time</div>
-          <div class="value amber" id="statIdle">0m</div>
-        </div>
-        <div class="stat-card">
-          <div class="label">Sessions</div>
-          <div class="value" id="statSessions">0</div>
-        </div>
+        <div class="stat-card"><div class="label">Active Time</div><div class="value green" id="statActive">0m</div></div>
+        <div class="stat-card"><div class="label">Idle Time</div><div class="value amber" id="statIdle">0m</div></div>
+        <div class="stat-card"><div class="label">Sessions</div><div class="value" id="statSessions">0</div></div>
       </div>
     </aside>
-
     <main>
       <div class="date-bar" id="dateBar"></div>
       <div class="timeline-wrap" id="timeline">
@@ -148,172 +109,247 @@
 </div>
 
 <script>
-  const { ipcRenderer } = require('electron');
-  const ActivityTracker = require('./tracker.js');
+// ── Electron IPC ──────────────────────────────────────────────────────────────
+const { ipcRenderer } = require('electron');
 
-  const BACKEND_URL = 'https://activitytracker-gvnr.onrender.com';
-  const API_SECRET  = '71ddb21c90749e011a1fa72d77da08ce6ef4f7227dc3996a27a540a7a0b31b6f';
+const BACKEND_URL = 'https://activitytracker-gvnr.onrender.com';
+const API_SECRET  = '71ddb21c90749e011a1fa72d77da08ce6ef4f7227dc3996a27a540a7a0b31b6f';
 
-  // ── Startup: get username from main process (reliable, no timing issues) ─────
-  const nameInput = document.getElementById('nameInput');
-  const startBtn  = document.getElementById('startBtn');
+// ── Name input: enable button as user types ───────────────────────────────────
+const nameInput = document.getElementById('nameInput');
+const startBtn  = document.getElementById('startBtn');
 
-  // Fix button enable: listen on multiple events
-  function syncBtn() {
-    startBtn.disabled = nameInput.value.trim().length === 0;
+function syncBtn() {
+  if (nameInput.value.trim().length > 0) {
+    startBtn.classList.add('ready');
+  } else {
+    startBtn.classList.remove('ready');
   }
-  nameInput.addEventListener('input',  syncBtn);
-  nameInput.addEventListener('keyup',  syncBtn);
-  nameInput.addEventListener('change', syncBtn);
+}
 
-  nameInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !startBtn.disabled) submitName();
-  });
+nameInput.oninput  = syncBtn;
+nameInput.onkeyup  = syncBtn;
+nameInput.onchange = syncBtn;
+nameInput.onkeydown = function(e) {
+  if (e.key === 'Enter') submitName();
+};
 
-  startBtn.addEventListener('click', submitName);
+function submitName() {
+  const username = nameInput.value.trim();
+  if (!username) return;
+  ipcRenderer.send('name-set', username);
+  beginTracking(username);
+}
 
-  function submitName() {
-    const username = nameInput.value.trim();
-    if (!username) return;
-    ipcRenderer.send('name-set', username);
-    beginTracking(username);
+// ── On load: check if we already have a username (silent start) ───────────────
+ipcRenderer.invoke('get-username').then(function(username) {
+  if (username) beginTracking(username);
+}).catch(function() {});
+
+// ── Activity tracker (inlined — no external require) ─────────────────────────
+const IDLE_THRESHOLD_MS = 5 * 60 * 1000;
+const POLL_INTERVAL_MS  = 30 * 1000;
+
+let trackerUsername   = null;
+let sessionStart      = Date.now();
+let lastActivity      = Date.now();
+let currentStatus     = 'active';
+let pollTimer         = null;
+const sessions        = [];
+const adjSentMap      = {};
+
+function trackerStart(username) {
+  trackerUsername = username;
+  sessionStart    = Date.now();
+  lastActivity    = Date.now();
+  currentStatus   = 'active';
+
+  document.addEventListener('mousemove', bumpLocal, { passive: true });
+  document.addEventListener('mousedown', bumpLocal, { passive: true });
+  document.addEventListener('keydown',   bumpLocal, { passive: true });
+  document.addEventListener('wheel',     bumpLocal, { passive: true });
+
+  pollTimer = setInterval(checkIdle, POLL_INTERVAL_MS);
+  checkIdle();
+}
+
+function trackerStop() {
+  clearInterval(pollTimer);
+  flushSession(currentStatus);
+}
+
+function bumpLocal() {
+  lastActivity = Date.now();
+  if (currentStatus === 'idle') {
+    flushSession('idle');
+    sessionStart  = lastActivity;
+    currentStatus = 'active';
   }
+}
 
-  // Main already decided whether to show/hide window.
-  // Renderer just needs to start tracking if a name is saved.
-  ipcRenderer.invoke('get-username').then(username => {
-    if (username) beginTracking(username);
-    // else: name screen is already visible (main showed it)
-  });
-
-  // ── Tracking ─────────────────────────────────────────────────────────────
-  const sessions    = [];
-  const adjSentMap  = {}; // tracks which session indices had adjustment sent
-  let tracker;
-
-  function beginTracking(username) {
-    document.getElementById('nameScreen').style.display = 'none';
-    const dash = document.getElementById('dashboard');
-    dash.style.display = 'flex';
-
-    document.getElementById('userChip').textContent = username;
-    document.getElementById('dateBar').textContent  = new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-    tracker = new ActivityTracker({
-      username,
-      backendUrl: BACKEND_URL,
-      apiSecret:  API_SECRET,
-      onSession: session => {
-        sessions.push(session);
-        renderTimeline();
-        updateStats();
-        updateStatusBadge(tracker.currentStatus);
-      },
-    });
-
-    tracker.start();
-
-    setInterval(() => updateStatusBadge(tracker ? tracker.currentStatus : 'active'), 10000);
-
-    // Flush current session before quit, then tell main it's safe to exit
-    ipcRenderer.on('flush-and-quit', () => {
-      if (tracker) tracker.stop();
-      ipcRenderer.send('flushed-and-quit');
-    });
-  }
-
-  // ── Render ───────────────────────────────────────────────────────────────
-  function fmt(iso) {
-    return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  function durLabel(mins) {
-    if (mins < 60) return `${mins}m`;
-    return `${Math.floor(mins/60)}h ${mins%60}m`;
-  }
-
-  function renderTimeline() {
-    const tl = document.getElementById('timeline');
-    if (!sessions.length) return;
-
-    // Only prepend new entries — don't rebuild existing ones (preserves adj sent state)
-    const existingIds = new Set([...tl.querySelectorAll('.entry')].map(el => el.id));
-
-    sessions.forEach((s, idx) => {
-      if (existingIds.has(`entry-${idx}`)) return; // already rendered
-      const el = document.createElement('div');
-      el.className = `entry ${s.status}-entry`;
-      el.id = `entry-${idx}`;
-      el.innerHTML = `
-        <div class="entry-time">${fmt(s.startTime)} → ${fmt(s.endTime)}</div>
-        <div class="entry-body">
-          <div class="entry-status ${s.status}">${s.status === 'active' ? '● Active' : '◌ Idle'}</div>
-          <div class="entry-dur">${durLabel(s.duration)}</div>
-          <div id="adj-${idx}"></div>
-        </div>
-        <div class="entry-actions">
-          <button class="btn-adj ${adjSentMap[idx] ? 'sent' : ''}" id="adjBtn-${idx}"
-            ${adjSentMap[idx] ? 'disabled' : `onclick="showAdjForm(${idx})"`}>
-            ${adjSentMap[idx] ? '✓ Sent' : 'Request Adjustment'}
-          </button>
-        </div>
-      `;
-      // Newest on top
-      tl.insertBefore(el, tl.firstChild);
-    });
-
-    // Remove placeholder if present
-    const empty = tl.querySelector('.empty');
-    if (empty) empty.remove();
-  }
-
-  function updateStats() {
-    const activeMins = sessions.filter(s => s.status === 'active').reduce((a, s) => a + s.duration, 0);
-    const idleMins   = sessions.filter(s => s.status === 'idle').reduce((a, s) => a + s.duration, 0);
-    document.getElementById('statActive').textContent   = durLabel(activeMins);
-    document.getElementById('statIdle').textContent     = durLabel(idleMins);
-    document.getElementById('statSessions').textContent = sessions.length;
-  }
-
-  function updateStatusBadge(status) {
-    const b = document.getElementById('statusBadge');
-    if (status === 'active') { b.textContent = 'Active'; b.className = 'badge active'; }
-    else                     { b.textContent = 'Idle';   b.className = 'badge idle'; }
-  }
-
-  // ── Adjustment request ───────────────────────────────────────────────────
-  function showAdjForm(idx) {
-    const container = document.getElementById(`adj-${idx}`);
-    if (container.innerHTML) return;
-    container.innerHTML = `
-      <div class="adj-form">
-        <input class="adj-input" id="adjNote-${idx}" placeholder="Describe the adjustment…" />
-        <button class="btn-send" onclick="submitAdj(${idx})">Send</button>
-      </div>
-    `;
-    document.getElementById(`adjNote-${idx}`).focus();
-  }
-
-  async function submitAdj(idx) {
-    const note    = document.getElementById(`adjNote-${idx}`).value.trim();
-    const session = sessions[idx];
-    if (!note) return;
-
-    try {
-      await fetch(`${BACKEND_URL}/adjustment`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
-        body:    JSON.stringify({ ...session, note }),
-      });
-      adjSentMap[idx] = true;
-      const btn = document.getElementById(`adjBtn-${idx}`);
-      if (btn) { btn.textContent = '✓ Sent'; btn.classList.add('sent'); btn.disabled = true; btn.removeAttribute('onclick'); }
-      const adjDiv = document.getElementById(`adj-${idx}`);
-      if (adjDiv) adjDiv.innerHTML = `<div style="font-size:0.72rem;color:#4caf87;margin-top:0.3rem">Request sent: "${note}"</div>`;
-    } catch {
-      alert('Failed to send request. Please try again.');
+async function checkIdle() {
+  try {
+    const idleSecs = await ipcRenderer.invoke('get-idle-time');
+    const sysIdleMs = idleSecs * 1000;
+    if (sysIdleMs < POLL_INTERVAL_MS) {
+      lastActivity = Date.now() - sysIdleMs;
     }
+  } catch(e) {}
+
+  const idleMs = Date.now() - lastActivity;
+
+  if (idleMs >= IDLE_THRESHOLD_MS && currentStatus === 'active') {
+    const idleStartedAt = new Date(lastActivity);
+    flushSession('active', new Date(sessionStart), idleStartedAt);
+    sessionStart  = lastActivity;
+    currentStatus = 'idle';
+  } else if (idleMs < IDLE_THRESHOLD_MS && currentStatus === 'idle') {
+    flushSession('idle');
+    sessionStart  = Date.now();
+    currentStatus = 'active';
   }
+}
+
+function flushSession(status, start, end) {
+  const s = start || new Date(sessionStart);
+  const e = end   || new Date();
+  const durationMs = e - s;
+  if (durationMs < 30000) return;
+
+  const session = {
+    username:  trackerUsername,
+    startTime: s.toISOString(),
+    endTime:   e.toISOString(),
+    duration:  Math.round(durationMs / 60000),
+    status,
+  };
+
+  sessions.push(session);
+  renderTimeline();
+  updateStats();
+  updateStatusBadge(currentStatus);
+  postSession(session);
+
+  sessionStart = e.getTime();
+}
+
+async function postSession(session) {
+  try {
+    await fetch(BACKEND_URL + '/session', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
+      body:    JSON.stringify(session),
+    });
+  } catch(e) {}
+}
+
+// ── Begin tracking + show dashboard ──────────────────────────────────────────
+function beginTracking(username) {
+  document.getElementById('nameScreen').style.display = 'none';
+  const dash = document.getElementById('dashboard');
+  dash.style.display = 'flex';
+
+  document.getElementById('userChip').textContent = username;
+  document.getElementById('dateBar').textContent  =
+    new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  trackerStart(username);
+  setInterval(function() { updateStatusBadge(currentStatus); }, 10000);
+
+  ipcRenderer.on('flush-and-quit', function() {
+    trackerStop();
+    ipcRenderer.send('flushed-and-quit');
+  });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function fmt(iso) {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+function durLabel(mins) {
+  if (mins < 60) return mins + 'm';
+  return Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+}
+
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  const existingIds = new Set(Array.from(tl.querySelectorAll('.entry')).map(function(el){ return el.id; }));
+
+  sessions.forEach(function(s, idx) {
+    if (existingIds.has('entry-' + idx)) return;
+    const el = document.createElement('div');
+    el.className = 'entry ' + s.status + '-entry';
+    el.id = 'entry-' + idx;
+    const sent = adjSentMap[idx];
+    el.innerHTML =
+      '<div class="entry-time">' + fmt(s.startTime) + ' → ' + fmt(s.endTime) + '</div>' +
+      '<div class="entry-body">' +
+        '<div class="entry-status ' + s.status + '">' + (s.status === 'active' ? '● Active' : '◌ Idle') + '</div>' +
+        '<div class="entry-dur">' + durLabel(s.duration) + '</div>' +
+        '<div id="adj-' + idx + '"></div>' +
+      '</div>' +
+      '<div class="entry-actions">' +
+        '<button class="btn-adj' + (sent ? ' sent' : '') + '" id="adjBtn-' + idx + '" ' +
+          (sent ? 'disabled' : 'onclick="showAdjForm(' + idx + ')"') + '>' +
+          (sent ? '✓ Sent' : 'Request Adjustment') +
+        '</button>' +
+      '</div>';
+    tl.insertBefore(el, tl.firstChild);
+  });
+
+  const empty = tl.querySelector('.empty');
+  if (empty) empty.remove();
+}
+
+function updateStats() {
+  const activeMins = sessions.filter(function(s){ return s.status === 'active'; }).reduce(function(a,s){ return a + s.duration; }, 0);
+  const idleMins   = sessions.filter(function(s){ return s.status === 'idle'; }).reduce(function(a,s){ return a + s.duration; }, 0);
+  document.getElementById('statActive').textContent   = durLabel(activeMins);
+  document.getElementById('statIdle').textContent     = durLabel(idleMins);
+  document.getElementById('statSessions').textContent = sessions.length;
+}
+
+function updateStatusBadge(status) {
+  const b = document.getElementById('statusBadge');
+  if (status === 'active') { b.textContent = 'Active'; b.className = 'badge active'; }
+  else                     { b.textContent = 'Idle';   b.className = 'badge idle';   }
+}
+
+// ── Adjustment request ────────────────────────────────────────────────────────
+function showAdjForm(idx) {
+  const container = document.getElementById('adj-' + idx);
+  if (!container || container.innerHTML) return;
+  container.innerHTML =
+    '<div class="adj-form">' +
+      '<input class="adj-input" id="adjNote-' + idx + '" placeholder="Describe the adjustment…" />' +
+      '<button class="btn-send" onclick="submitAdj(' + idx + ')">Send</button>' +
+    '</div>';
+  var input = document.getElementById('adjNote-' + idx);
+  if (input) input.focus();
+}
+
+async function submitAdj(idx) {
+  var noteEl = document.getElementById('adjNote-' + idx);
+  if (!noteEl) return;
+  var note    = noteEl.value.trim();
+  var session = sessions[idx];
+  if (!note) return;
+
+  try {
+    await fetch(BACKEND_URL + '/adjustment', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
+      body:    JSON.stringify(Object.assign({}, session, { note: note })),
+    });
+    adjSentMap[idx] = true;
+    var btn = document.getElementById('adjBtn-' + idx);
+    if (btn) { btn.textContent = '✓ Sent'; btn.classList.add('sent'); btn.disabled = true; btn.removeAttribute('onclick'); }
+    var adjDiv = document.getElementById('adj-' + idx);
+    if (adjDiv) adjDiv.innerHTML = '<div style="font-size:0.72rem;color:#4caf87;margin-top:0.3rem">Request sent: "' + note + '"</div>';
+  } catch(e) {
+    alert('Failed to send. Please try again.');
+  }
+}
 </script>
 </body>
 </html>
