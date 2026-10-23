@@ -3,31 +3,125 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 const { getConfig } = require('./store');
 
-// ── Google Sheets ────────────────────────────────────────────────────────────
+// ── Sheets helpers ───────────────────────────────────────────────────────────
 
-function getSheetsClient(cfg) {
-  const auth = new google.auth.GoogleAuth({
+function getAuth(cfg) {
+  return new google.auth.GoogleAuth({
     credentials: {
       client_email: cfg.googleSheets.clientEmail,
       private_key: cfg.googleSheets.privateKey.replace(/\\n/g, '\n'),
     },
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    scopes: [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/drive.file',
+    ],
   });
-  return google.sheets({ version: 'v4', auth });
 }
 
-async function appendToSheet(data) {
+function sheets(auth) { return google.sheets({ version: 'v4', auth }); }
+function drive(auth)  { return google.drive({ version: 'v3', auth }); }
+
+async function ensureTab(sheetsApi, spreadsheetId, tabName) {
+  const meta = await sheetsApi.spreadsheets.get({ spreadsheetId });
+  const exists = meta.data.sheets.some(s => s.properties.title === tabName);
+  if (exists) return;
+
+  await sheetsApi.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        { addSheet: { properties: { title: tabName } } },
+      ],
+    },
+  });
+
+  // Write header row on new tab
+  await sheetsApi.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${tabName}!A1:D1`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [['Date', 'Time', 'Activity', 'Screenshot']] },
+  });
+}
+
+async function getLastRow(sheetsApi, spreadsheetId, tabName) {
+  const res = await sheetsApi.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${tabName}!A:A`,
+  });
+  return (res.data.values || []).length + 1;
+}
+
+async function uploadScreenshot(driveApi, base64Image, filename) {
+  if (!base64Image) return null;
+  const buf = Buffer.from(base64Image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+  const { Readable } = require('stream');
+  const stream = Readable.from(buf);
+
+  const file = await driveApi.files.create({
+    requestBody: { name: filename, mimeType: 'image/png' },
+    media: { mimeType: 'image/png', body: stream },
+    fields: 'id',
+  });
+  // Make publicly readable so =IMAGE() works in Sheets
+  await driveApi.permissions.create({
+    fileId: file.data.id,
+    requestBody: { role: 'reader', type: 'anyone' },
+  });
+  return `https://drive.google.com/uc?id=${file.data.id}`;
+}
+
+// ── Main: append activity log ────────────────────────────────────────────────
+
+async function appendToSheet({ activity, timestamp, username, screenshotBase64 }) {
   const cfg = getConfig();
   if (!cfg.googleSheets.spreadsheetId || !cfg.googleSheets.clientEmail) {
     console.warn('Google Sheets not configured — skipping.');
     return;
   }
-  const sheets = getSheetsClient(cfg);
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: cfg.googleSheets.spreadsheetId,
-    range: cfg.googleSheets.range,
+
+  const auth    = getAuth(cfg);
+  const sh      = sheets(auth);
+  const dr      = drive(auth);
+  const sid     = cfg.googleSheets.spreadsheetId;
+  const tabName = username || cfg.user || 'Default';
+  const now     = new Date(timestamp);
+  const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  await ensureTab(sh, sid, tabName);
+
+  // Check if today's date header already exists in this tab
+  const colA = await sh.spreadsheets.values.get({ spreadsheetId: sid, range: `${tabName}!A:A` });
+  const rows  = colA.data.values || [];
+  const hasDate = rows.some(r => r[0] === dateStr);
+
+  let nextRow = rows.length + 1;
+
+  if (!hasDate) {
+    // Insert a date separator row
+    await sh.spreadsheets.values.append({
+      spreadsheetId: sid,
+      range: `${tabName}!A${nextRow}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[dateStr, '', '── Day separator ──', '']] },
+    });
+    nextRow++;
+  }
+
+  // Upload screenshot if provided
+  let imageFormula = '';
+  if (screenshotBase64) {
+    const url = await uploadScreenshot(dr, screenshotBase64, `screenshot_${Date.now()}.png`);
+    if (url) imageFormula = `=IMAGE("${url}")`;
+  }
+
+  // Append the log row
+  await sh.spreadsheets.values.append({
+    spreadsheetId: sid,
+    range: `${tabName}!A${nextRow}`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[data.timestamp, data.activity]] },
+    requestBody: { values: [[dateStr, timeStr, activity, imageFormula]] },
   });
 }
 

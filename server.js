@@ -3,7 +3,7 @@ const services = require('./services');
 
 const PORT = 3056;
 
-function route(req, res, status, body) {
+function reply(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -16,7 +16,7 @@ function route(req, res, status, body) {
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', chunk => (data += chunk));
+    req.on('data', c => (data += c));
     req.on('end', () => {
       try { resolve(data ? JSON.parse(data) : {}); }
       catch { reject(new Error('Invalid JSON')); }
@@ -27,46 +27,49 @@ function readBody(req) {
 
 function start() {
   const server = http.createServer(async (req, res) => {
-    // CORS preflight
-    if (req.method === 'OPTIONS') return route(req, res, 204, {});
+    if (req.method === 'OPTIONS') return reply(res, 204, {});
 
     try {
-      // GET /status
       if (req.method === 'GET' && req.url === '/status') {
-        return route(req, res, 200, { status: 'running', port: PORT });
+        return reply(res, 200, { status: 'running', port: PORT });
       }
 
-      // POST /log  — log activity to Google Sheets
+      // POST /log — { activity, username, timestamp?, screenshotBase64? }
       if (req.method === 'POST' && req.url === '/log') {
         const body = await readBody(req);
-        if (!body.activity) return route(req, res, 400, { error: 'Missing activity field' });
-        await services.appendToSheet({ activity: body.activity, timestamp: new Date().toISOString() });
-        return route(req, res, 200, { ok: true });
+        if (!body.activity) return reply(res, 400, { error: 'Missing activity' });
+        await services.appendToSheet({
+          activity:        body.activity,
+          username:        body.username || 'User',
+          timestamp:       body.timestamp || new Date().toISOString(),
+          screenshotBase64: body.screenshotBase64 || null,
+        });
+        return reply(res, 200, { ok: true });
       }
 
-      // POST /email — send an email
+      // POST /email
       if (req.method === 'POST' && req.url === '/email') {
         const body = await readBody(req);
-        if (!body.to || !body.subject) return route(req, res, 400, { error: 'Missing to or subject' });
+        if (!body.to || !body.subject) return reply(res, 400, { error: 'Missing to or subject' });
         await services.sendEmail(body);
-        return route(req, res, 200, { ok: true });
+        return reply(res, 200, { ok: true });
       }
 
-      // POST /crm — push to CRM
+      // POST /crm
       if (req.method === 'POST' && req.url === '/crm') {
         const body = await readBody(req);
         await services.postToCRM(body);
-        return route(req, res, 200, { ok: true });
+        return reply(res, 200, { ok: true });
       }
 
-      route(req, res, 404, { error: 'Not found' });
+      reply(res, 404, { error: 'Not found' });
     } catch (err) {
-      route(req, res, 500, { error: err.message });
+      reply(res, 500, { error: err.message });
     }
   });
 
   server.listen(PORT, '127.0.0.1', () => {
-    console.log(`Local server running on http://127.0.0.1:${PORT}`);
+    console.log(`Server on http://127.0.0.1:${PORT}`);
   });
 }
 

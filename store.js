@@ -1,52 +1,50 @@
-const Store = require('electron-store');
-const { safeStorage } = require('electron');
+const Store = require('electron-store').default;
+const path = require('path');
+const os = require('os');
 
-// All config lives in OS AppData — never inside the .exe
-const store = new Store({ name: 'activity-tracker-config' });
-
-function encrypt(val) {
-  if (!val || !safeStorage.isEncryptionAvailable()) return val;
-  return safeStorage.encryptString(val).toString('base64');
-}
-
-function decrypt(val) {
-  if (!val || !safeStorage.isEncryptionAvailable()) return val;
+// Resolve app data dir whether running inside Electron or plain Node
+function getAppDataDir() {
   try {
-    return safeStorage.decryptString(Buffer.from(val, 'base64'));
+    const { app } = require('electron');
+    return app.getPath('userData');
   } catch {
-    return val;
+    return path.join(os.homedir(), 'AppData', 'Roaming', 'activity-utility');
   }
 }
 
+let _store;
+function getStore() {
+  if (!_store) {
+    _store = new Store({ name: 'activity-tracker-config', cwd: getAppDataDir() });
+  }
+  return _store;
+}
+
 function getConfig() {
+  const store = getStore();
   return {
-    user:         store.get('user', ''),
+    user: store.get('user', ''),
     googleSheets: {
       spreadsheetId: store.get('googleSheets.spreadsheetId', ''),
       range:         store.get('googleSheets.range', 'Sheet1!A1'),
       clientEmail:   store.get('googleSheets.clientEmail', ''),
-      privateKey:    decrypt(store.get('googleSheets.privateKey', '')),
+      privateKey:    store.get('googleSheets.privateKey', ''),
     },
     email: {
       host: store.get('email.host', ''),
       port: store.get('email.port', 587),
       user: store.get('email.user', ''),
-      pass: decrypt(store.get('email.pass', '')),
+      pass: store.get('email.pass', ''),
     },
     crm: {
       apiUrl: store.get('crm.apiUrl', ''),
-      apiKey: decrypt(store.get('crm.apiKey', '')),
+      apiKey: store.get('crm.apiKey', ''),
     },
   };
 }
 
 function setConfig(key, value) {
-  const sensitiveKeys = [
-    'googleSheets.privateKey',
-    'email.pass',
-    'crm.apiKey',
-  ];
-  store.set(key, sensitiveKeys.includes(key) ? encrypt(value) : value);
+  getStore().set(key, value);
 }
 
 module.exports = { getConfig, setConfig };
