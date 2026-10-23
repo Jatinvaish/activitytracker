@@ -4,10 +4,8 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'backend/**'
-      - 'render.yaml'
-      - '.github/workflows/deploy-backend.yml'
+    paths-ignore:
+      - '*.md'
 
 jobs:
   deploy:
