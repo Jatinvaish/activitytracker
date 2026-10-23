@@ -27,3 +27,7 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
