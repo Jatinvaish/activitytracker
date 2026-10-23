@@ -187,7 +187,8 @@
   });
 
   // ── Tracking ─────────────────────────────────────────────────────────────
-  const sessions = [];
+  const sessions    = [];
+  const adjSentMap  = {}; // tracks which session indices had adjustment sent
   let tracker;
 
   function beginTracking(username) {
@@ -213,6 +214,12 @@
     tracker.start();
 
     setInterval(() => updateStatusBadge(tracker ? tracker.currentStatus : 'active'), 10000);
+
+    // Flush current session before quit, then tell main it's safe to exit
+    ipcRenderer.on('flush-and-quit', () => {
+      if (tracker) tracker.stop();
+      ipcRenderer.send('flushed-and-quit');
+    });
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -229,22 +236,35 @@
     const tl = document.getElementById('timeline');
     if (!sessions.length) return;
 
-    tl.innerHTML = sessions.slice().reverse().map((s, i) => {
-      const idx = sessions.length - 1 - i;
-      return `
-        <div class="entry ${s.status}-entry" id="entry-${idx}">
-          <div class="entry-time">${fmt(s.startTime)} → ${fmt(s.endTime)}</div>
-          <div class="entry-body">
-            <div class="entry-status ${s.status}">${s.status === 'active' ? '● Active' : '◌ Idle'}</div>
-            <div class="entry-dur">${durLabel(s.duration)}</div>
-            <div id="adj-${idx}"></div>
-          </div>
-          <div class="entry-actions">
-            <button class="btn-adj" id="adjBtn-${idx}" onclick="showAdjForm(${idx})">Request Adjustment</button>
-          </div>
+    // Only prepend new entries — don't rebuild existing ones (preserves adj sent state)
+    const existingIds = new Set([...tl.querySelectorAll('.entry')].map(el => el.id));
+
+    sessions.forEach((s, idx) => {
+      if (existingIds.has(`entry-${idx}`)) return; // already rendered
+      const el = document.createElement('div');
+      el.className = `entry ${s.status}-entry`;
+      el.id = `entry-${idx}`;
+      el.innerHTML = `
+        <div class="entry-time">${fmt(s.startTime)} → ${fmt(s.endTime)}</div>
+        <div class="entry-body">
+          <div class="entry-status ${s.status}">${s.status === 'active' ? '● Active' : '◌ Idle'}</div>
+          <div class="entry-dur">${durLabel(s.duration)}</div>
+          <div id="adj-${idx}"></div>
+        </div>
+        <div class="entry-actions">
+          <button class="btn-adj ${adjSentMap[idx] ? 'sent' : ''}" id="adjBtn-${idx}"
+            ${adjSentMap[idx] ? 'disabled' : `onclick="showAdjForm(${idx})"`}>
+            ${adjSentMap[idx] ? '✓ Sent' : 'Request Adjustment'}
+          </button>
         </div>
       `;
-    }).join('');
+      // Newest on top
+      tl.insertBefore(el, tl.firstChild);
+    });
+
+    // Remove placeholder if present
+    const empty = tl.querySelector('.empty');
+    if (empty) empty.remove();
   }
 
   function updateStats() {
@@ -285,11 +305,11 @@
         headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
         body:    JSON.stringify({ ...session, note }),
       });
+      adjSentMap[idx] = true;
       const btn = document.getElementById(`adjBtn-${idx}`);
-      btn.textContent = '✓ Sent';
-      btn.classList.add('sent');
-      btn.disabled = true;
-      document.getElementById(`adj-${idx}`).innerHTML = `<div style="font-size:0.72rem;color:#4caf87;margin-top:0.3rem">Request sent: "${note}"</div>`;
+      if (btn) { btn.textContent = '✓ Sent'; btn.classList.add('sent'); btn.disabled = true; btn.removeAttribute('onclick'); }
+      const adjDiv = document.getElementById(`adj-${idx}`);
+      if (adjDiv) adjDiv.innerHTML = `<div style="font-size:0.72rem;color:#4caf87;margin-top:0.3rem">Request sent: "${note}"</div>`;
     } catch {
       alert('Failed to send request. Please try again.');
     }

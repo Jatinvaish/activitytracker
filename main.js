@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, powerMonitor } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const zlib = require('zlib');
 const fs   = require('fs');
@@ -20,8 +20,6 @@ function saveUsername(name) {
   fs.writeFileSync(configPath(), JSON.stringify({ username: name }), 'utf8');
 }
 
-// ── Auto-start on PC boot ─────────────────────────────────────────────────────
-app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
 
 // ── Tray icon: 16×16 green square, pure JS — no external file ────────────────
 function makeTrayIcon() {
@@ -100,7 +98,12 @@ function refreshTray() {
     { type: 'separator' },
     { label: 'View My Logs', click: () => { mainWindow.show(); mainWindow.focus(); } },
     { type: 'separator' },
-    { label: 'Quit', click: () => app.exit(0) },
+    { label: 'Quit', click: () => {
+      // Tell renderer to flush current session, then it sends 'flushed-and-quit'
+      mainWindow.webContents.send('flush-and-quit');
+      // Safety fallback: force quit after 3s if renderer doesn't respond
+      setTimeout(() => app.exit(0), 3000);
+    }},
   ]));
 }
 
@@ -117,8 +120,14 @@ ipcMain.on('name-set', (_, name) => {
   refreshTray();
 });
 
-ipcMain.handle('app-version', () => app.getVersion());
+ipcMain.handle('app-version',  () => app.getVersion());
 ipcMain.handle('get-username', () => loadUsername());
+
+// System idle time for background tracking (powerMonitor works in main process)
+ipcMain.handle('get-idle-time', () => powerMonitor.getSystemIdleTime());
+
+// Renderer signals it flushed last session — now safe to quit
+ipcMain.on('flushed-and-quit', () => app.exit(0));
 
 // ── Auto-updater: force install immediately, zero user prompt ─────────────────
 function setupAutoUpdater() {
@@ -132,12 +141,14 @@ function setupAutoUpdater() {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
+  // Auto-start on PC boot (must be inside whenReady)
+  app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
+
   trackedUsername = loadUsername();
   const needsName = !trackedUsername;
 
-  createWindow(needsName);   // show immediately only if no name saved
+  createWindow(needsName);
   createTray();
-  refreshTray();
 
   if (app.isPackaged) setupAutoUpdater();
 });
