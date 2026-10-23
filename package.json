@@ -26,26 +26,48 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "YOUR_GITHUB_USERNAME",
-      "repo": "YOUR_REPO_NAME"
+      "owner": "Jatinvaish",
+      "repo": "activitytracker"
     },
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64", "ia32"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
       ],
       "icon": "assets/icon.ico"
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64"] },
-        { "target": "deb", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "assets/icon.png",
       "category": "Utility"
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.productivity"
@@ -60,13 +82,15 @@
     }
   },
   "dependencies": {
+    "axios": "^1.7.2",
     "electron": "^31.0.0",
+    "electron-store": "^12.0.0",
     "electron-updater": "^6.3.0",
     "googleapis": "^140.0.0",
-    "nodemailer": "^6.9.14",
-    "axios": "^1.7.2"
+    "nodemailer": "^6.9.14"
   },
   "devDependencies": {
+    "bytenode": "^2.0.0",
     "electron-builder": "^24.13.3"
   }
 }

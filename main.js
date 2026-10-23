@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const server = require('./server');
+const { getConfig, setConfig } = require('./store');
 
 let mainWindow;
 
@@ -15,75 +16,57 @@ function createWindow() {
       contextIsolation: false,
     },
   });
-
   mainWindow.loadFile('index.html');
 }
 
-// ── Auto-updater ────────────────────────────────────────────────────────────
+// ── Auto-updater ─────────────────────────────────────────────────────────────
 
 function setupAutoUpdater() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on('checking-for-update', () => {
-    mainWindow?.webContents.send('update-status', { event: 'checking' });
-  });
+  autoUpdater.on('update-available', info =>
+    mainWindow?.webContents.send('update-status', { event: 'available', version: info.version }));
 
-  autoUpdater.on('update-available', (info) => {
-    mainWindow?.webContents.send('update-status', {
-      event: 'available',
-      version: info.version,
-    });
-  });
+  autoUpdater.on('download-progress', p =>
+    mainWindow?.webContents.send('update-status', { event: 'progress', percent: Math.round(p.percent) }));
 
-  autoUpdater.on('update-not-available', () => {
-    mainWindow?.webContents.send('update-status', { event: 'latest' });
-  });
+  autoUpdater.on('update-downloaded', info =>
+    mainWindow?.webContents.send('update-status', { event: 'downloaded', version: info.version }));
 
-  autoUpdater.on('download-progress', (progress) => {
-    mainWindow?.webContents.send('update-status', {
-      event: 'progress',
-      percent: Math.round(progress.percent),
-    });
-  });
+  autoUpdater.on('error', err =>
+    mainWindow?.webContents.send('update-status', { event: 'error', message: err.message }));
 
-  autoUpdater.on('update-downloaded', (info) => {
-    mainWindow?.webContents.send('update-status', {
-      event: 'downloaded',
-      version: info.version,
-    });
-  });
-
-  autoUpdater.on('error', (err) => {
-    mainWindow?.webContents.send('update-status', {
-      event: 'error',
-      message: err.message,
-    });
-  });
-
-  // Check on launch, then every 4 hours
   autoUpdater.checkForUpdates().catch(() => {});
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
 }
 
-// ── IPC handlers ────────────────────────────────────────────────────────────
+// ── IPC handlers ─────────────────────────────────────────────────────────────
 
-ipcMain.on('install-update', () => {
-  autoUpdater.quitAndInstall();
-});
-
+ipcMain.on('install-update', () => autoUpdater.quitAndInstall());
 ipcMain.handle('app-version', () => app.getVersion());
 
-// ── App lifecycle ───────────────────────────────────────────────────────────
+// Settings: renderer can read/write config securely
+ipcMain.handle('get-config', () => {
+  const cfg = getConfig();
+  // Mask secrets before sending to renderer
+  if (cfg.googleSheets.privateKey) cfg.googleSheets.privateKey = '••••••••';
+  if (cfg.email.pass)              cfg.email.pass              = '••••••••';
+  if (cfg.crm.apiKey)              cfg.crm.apiKey              = '••••••••';
+  return cfg;
+});
+
+ipcMain.handle('set-config', (_, key, value) => {
+  setConfig(key, value);
+  return true;
+});
+
+// ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
   server.start();
   createWindow();
-
-  // Only check for updates in production (not during `npm start`)
-  if (app.isPackaged) {
-    setupAutoUpdater();
-  }
+  if (app.isPackaged) setupAutoUpdater();
 });
 
 app.on('window-all-closed', () => {

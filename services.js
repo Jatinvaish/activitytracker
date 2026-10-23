@@ -1,11 +1,11 @@
 const { google } = require('googleapis');
 const nodemailer = require('nodemailer');
 const axios = require('axios');
-const cfg = require('./config.json');
+const { getConfig } = require('./store');
 
 // ── Google Sheets ────────────────────────────────────────────────────────────
 
-function getSheetsClient() {
+function getSheetsClient(cfg) {
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: cfg.googleSheets.clientEmail,
@@ -17,52 +17,41 @@ function getSheetsClient() {
 }
 
 async function appendToSheet(data) {
+  const cfg = getConfig();
   if (!cfg.googleSheets.spreadsheetId || !cfg.googleSheets.clientEmail) {
     console.warn('Google Sheets not configured — skipping.');
     return;
   }
-  const sheets = getSheetsClient();
+  const sheets = getSheetsClient(cfg);
   await sheets.spreadsheets.values.append({
     spreadsheetId: cfg.googleSheets.spreadsheetId,
-    range: cfg.googleSheets.range || 'Sheet1!A1',
+    range: cfg.googleSheets.range,
     valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [[data.timestamp, data.activity]],
-    },
+    requestBody: { values: [[data.timestamp, data.activity]] },
   });
 }
 
 // ── Email ────────────────────────────────────────────────────────────────────
 
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: cfg.email.host,
-    port: cfg.email.port || 587,
-    secure: cfg.email.port === 465,
-    auth: {
-      user: cfg.email.user,
-      pass: cfg.email.pass,
-    },
-  });
-}
-
 async function sendEmail({ to, subject, body }) {
+  const cfg = getConfig();
   if (!cfg.email.host || !cfg.email.user) {
     console.warn('Email not configured — skipping.');
     return;
   }
-  const transporter = getTransporter();
-  await transporter.sendMail({
-    from: cfg.email.user,
-    to,
-    subject,
-    text: body || '',
+  const transporter = nodemailer.createTransport({
+    host: cfg.email.host,
+    port: cfg.email.port,
+    secure: cfg.email.port === 465,
+    auth: { user: cfg.email.user, pass: cfg.email.pass },
   });
+  await transporter.sendMail({ from: cfg.email.user, to, subject, text: body || '' });
 }
 
 // ── CRM / External API ───────────────────────────────────────────────────────
 
 async function postToCRM(payload) {
+  const cfg = getConfig();
   if (!cfg.crm.apiUrl) {
     console.warn('CRM not configured — skipping.');
     return;
