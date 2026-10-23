@@ -154,24 +154,17 @@
   const BACKEND_URL = 'https://activitytracker-gvnr.onrender.com';
   const API_SECRET  = '71ddb21c90749e011a1fa72d77da08ce6ef4f7227dc3996a27a540a7a0b31b6f';
 
-  // ── Startup: check saved name ─────────────────────────────────────────────
+  // ── Startup: get username from main process (reliable, no timing issues) ─────
   const nameInput = document.getElementById('nameInput');
   const startBtn  = document.getElementById('startBtn');
 
-  const savedName = localStorage.getItem('username') || '';
-
-  if (savedName) {
-    // Already have a name — start silently, tell main to stay hidden
-    ipcRenderer.send('has-name', savedName);
-    beginTracking(savedName);
-  } else {
-    // No name — tell main to show the name screen
-    ipcRenderer.send('need-name');
-  }
-
-  nameInput.addEventListener('input', () => {
+  // Fix button enable: listen on multiple events
+  function syncBtn() {
     startBtn.disabled = nameInput.value.trim().length === 0;
-  });
+  }
+  nameInput.addEventListener('input',  syncBtn);
+  nameInput.addEventListener('keyup',  syncBtn);
+  nameInput.addEventListener('change', syncBtn);
 
   nameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !startBtn.disabled) submitName();
@@ -182,11 +175,16 @@
   function submitName() {
     const username = nameInput.value.trim();
     if (!username) return;
-    localStorage.setItem('username', username);
-    // Tell main: name set, hide window
     ipcRenderer.send('name-set', username);
     beginTracking(username);
   }
+
+  // Main already decided whether to show/hide window.
+  // Renderer just needs to start tracking if a name is saved.
+  ipcRenderer.invoke('get-username').then(username => {
+    if (username) beginTracking(username);
+    // else: name screen is already visible (main showed it)
+  });
 
   // ── Tracking ─────────────────────────────────────────────────────────────
   const sessions = [];
