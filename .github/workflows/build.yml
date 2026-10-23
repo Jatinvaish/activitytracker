@@ -50,7 +50,7 @@ jobs:
           path: |
             dist/*.exe
             dist/*.blockmap
-            dist/*.yml
+            dist/latest.yml
           if-no-files-found: error
 
   # ────────────────────────── LINUX ────────────────────────────────────────
@@ -93,7 +93,7 @@ jobs:
           name: linux-build
           path: |
             dist/*.AppImage
-            dist/*.yml
+            dist/latest-linux.yml
           if-no-files-found: error
 
   # ────────────────────────── MACOS ────────────────────────────────────────
@@ -134,7 +134,7 @@ jobs:
           name: mac-build
           path: |
             dist/*.dmg
-            dist/*.yml
+            dist/latest-mac.yml
           if-no-files-found: error
 
   # ────────────────────────── RELEASE ──────────────────────────────────────
