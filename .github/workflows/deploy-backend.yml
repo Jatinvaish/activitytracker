@@ -1,20 +1,19 @@
 name: Deploy Backend to Render
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build & Release"]
+    types:
+      - completed
     branches:
       - master
-    paths:
-      - 'backend/**'
-      - 'render.yaml'
 
 jobs:
   deploy:
-    name: Trigger Render Deploy
+    name: Deploy to Render
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Trigger Render deploy hook
         run: |
-          curl -s --fail-with-body \
-            "${{ secrets.RENDER_DEPLOY_HOOK }}" \
-            | jq .
+          curl -s --fail-with-body "${{ secrets.RENDER_DEPLOY_HOOK }}"
