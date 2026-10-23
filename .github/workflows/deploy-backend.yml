@@ -1,0 +1,20 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - 'render.yaml'
+
+jobs:
+  deploy:
+    name: Trigger Render Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          curl -s --fail-with-body \
+            "${{ secrets.RENDER_DEPLOY_HOOK }}" \
+            | jq .
