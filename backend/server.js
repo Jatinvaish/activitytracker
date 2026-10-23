@@ -5,6 +5,7 @@ const morgan    = require('morgan');
 const rateLimit = require('express-rate-limit');
 const db        = require('./db');
 const mailer    = require('./mailer');
+const admin     = require('./admin-api');
 // const sheets = require('./sheets'); // commented — Sheets kept only for email, not data
 
 const app  = express();
@@ -52,9 +53,10 @@ app.post('/adjustment', auth, async (req, res) => {
     const adj = await db.insertAdjustment({ username, startTime, note });
 
     // Email owner — this stays
-    const start = new Date(startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const end   = new Date(endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const date  = new Date(startTime).toLocaleDateString('en-GB');
+    const tz    = { timeZone: db.APP_TZ };
+    const start = new Date(startTime).toLocaleTimeString('en-GB', { ...tz, hour: '2-digit', minute: '2-digit' });
+    const end   = new Date(endTime).toLocaleTimeString('en-GB', { ...tz, hour: '2-digit', minute: '2-digit' });
+    const date  = new Date(startTime).toLocaleDateString('en-GB', tz);
 
     await mailer.send({
       to:      process.env.SMTP_USER,
@@ -68,7 +70,7 @@ app.post('/adjustment', auth, async (req, res) => {
         note,
         ``,
         `Adjustment ID: ${adj.id}`,
-        `View sheet: https://docs.google.com/spreadsheets/d/${process.env.GOOGLE_SPREADSHEET_ID}`,
+        `Review it: https://${req.get('host')}/admin#adjustments`,
       ].join('\n'),
     });
 
@@ -100,6 +102,8 @@ app.get('/adjustments/pending', auth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.use('/admin', admin);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => res.status(500).json({ error: 'Internal server error' }));

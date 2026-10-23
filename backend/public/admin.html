@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Tracker Admin</title>
+  <link rel="stylesheet" href="/admin/assets/admin.css">
+</head>
+<body>
+
+<div id="login" class="login" hidden>
+  <form id="loginForm" class="login-card">
+    <h1>Activity Tracker</h1>
+    <p class="muted">Admin console</p>
+    <input id="loginKey" class="input" type="password" placeholder="Admin key" autocomplete="current-password" required>
+    <button type="submit" class="btn primary">Sign in</button>
+    <div id="loginError" class="form-error" role="alert"></div>
+    <p class="muted small">The first request can take up to a minute while the free server wakes up.</p>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="brand">Activity Tracker<span>Admin</span></div>
+    <nav id="nav">
+      <button type="button" data-view="dashboard">Dashboard</button>
+      <button type="button" data-view="employees">Employees</button>
+      <button type="button" data-view="sessions">Sessions</button>
+      <button type="button" data-view="adjustments">Adjustments <span id="pendingBadge" class="count" hidden></span></button>
+    </nav>
+    <button type="button" id="logoutBtn" class="btn ghost">Sign out</button>
+  </header>
+  <main id="view"></main>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script src="/admin/assets/admin.js"></script>
+</body>
+</html>

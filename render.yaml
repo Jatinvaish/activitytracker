@@ -31,3 +31,7 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
+      - key: ADMIN_KEY
+        sync: false
+      - key: APP_TIMEZONE
+        value: Asia/Kolkata
