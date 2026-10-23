@@ -101,9 +101,8 @@
     </aside>
     <main>
       <div class="date-bar" id="dateBar"></div>
-      <div class="timeline-wrap" id="timeline">
-        <div class="empty">Tracking started — logs will appear here.</div>
-      </div>
+      <div style="padding:0.6rem 1.25rem 0;flex-shrink:0;" id="liveSession"></div>
+      <div class="timeline-wrap" id="timeline"></div>
     </main>
   </div>
 </div>
@@ -254,12 +253,36 @@ function beginTracking(username) {
     new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   trackerStart(username);
-  setInterval(function() { updateStatusBadge(currentStatus); }, 10000);
+
+  // Live ticker: update every second
+  setInterval(function() {
+    updateStatusBadge(currentStatus);
+    updateLiveSession();
+    updateStats();
+  }, 1000);
 
   ipcRenderer.on('flush-and-quit', function() {
     trackerStop();
     ipcRenderer.send('flushed-and-quit');
   });
+}
+
+function updateLiveSession() {
+  var el = document.getElementById('liveSession');
+  if (!el) return;
+  var elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+  var mins = Math.floor(elapsed / 60);
+  var secs = elapsed % 60;
+  var durStr = mins > 0 ? mins + 'm ' + secs + 's' : secs + 's';
+  var label  = currentStatus === 'active' ? '● Active' : '◌ Idle';
+  var color  = currentStatus === 'active' ? '#4caf87' : '#c89050';
+  el.innerHTML =
+    '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1rem;background:#111;border:1px solid #222;border-left:3px solid ' + color + ';border-radius:8px;font-size:0.78rem;">' +
+      '<span style="color:' + color + ';font-weight:600;">' + label + '</span>' +
+      '<span style="color:#444;font-size:0.7rem;">in progress</span>' +
+      '<span style="margin-left:auto;color:#666;font-size:0.72rem;">' + fmt(new Date(sessionStart).toISOString()) + ' → now</span>' +
+      '<span style="color:' + color + ';font-weight:700;min-width:60px;text-align:right;">' + durStr + '</span>' +
+    '</div>';
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -302,11 +325,15 @@ function renderTimeline() {
 }
 
 function updateStats() {
-  const activeMins = sessions.filter(function(s){ return s.status === 'active'; }).reduce(function(a,s){ return a + s.duration; }, 0);
-  const idleMins   = sessions.filter(function(s){ return s.status === 'idle'; }).reduce(function(a,s){ return a + s.duration; }, 0);
+  var activeMins = sessions.filter(function(s){ return s.status === 'active'; }).reduce(function(a,s){ return a + s.duration; }, 0);
+  var idleMins   = sessions.filter(function(s){ return s.status === 'idle'; }).reduce(function(a,s){ return a + s.duration; }, 0);
+  // Include live in-progress session
+  var liveMins = Math.floor((Date.now() - sessionStart) / 60000);
+  if (currentStatus === 'active') activeMins += liveMins;
+  else idleMins += liveMins;
   document.getElementById('statActive').textContent   = durLabel(activeMins);
   document.getElementById('statIdle').textContent     = durLabel(idleMins);
-  document.getElementById('statSessions').textContent = sessions.length;
+  document.getElementById('statSessions').textContent = sessions.length + 1;
 }
 
 function updateStatusBadge(status) {
