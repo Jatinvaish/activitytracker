@@ -141,8 +141,8 @@
   const { ipcRenderer, desktopCapturer } = require('electron');
 
   // ── Backend config ────────────────────────────────────────────────────────
-  const BACKEND_URL    = 'https://activity-tracker-api.onrender.com';
-  const API_SECRET     = process.env.API_SECRET || '';
+  const BACKEND_URL = 'https://activitytracker-gvnr.onrender.com';
+  const API_SECRET  = '71ddb21c90749e011a1fa72d77da08ce6ef4f7227dc3996a27a540a7a0b31b6f';
 
   // ── Version ──────────────────────────────────────────────────────────────
   ipcRenderer.invoke('app-version').then(v => {
