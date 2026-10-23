@@ -1,19 +1,39 @@
 name: Deploy Backend to Render
 
 on:
-  workflow_run:
-    workflows: ["Build & Release"]
-    types:
-      - completed
+  push:
     branches:
       - master
+    paths:
+      - 'backend/**'
+      - 'render.yaml'
+      - '.github/workflows/deploy-backend.yml'
 
 jobs:
   deploy:
     name: Deploy to Render
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Trigger Render deploy hook
+      - name: Verify secret exists
         run: |
-          curl -s --fail-with-body "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            echo "❌ RENDER_DEPLOY_HOOK secret is empty or not set"
+            exit 1
+          else
+            echo "✅ Secret is set"
+          fi
+
+      - name: Trigger Render deploy
+        run: |
+          HTTP_STATUS=$(curl -v -X POST \
+            "${{ secrets.RENDER_DEPLOY_HOOK }}" \
+            -w "%{http_code}" \
+            -o /tmp/render_response.txt 2>&1)
+          echo "Response body:"
+          cat /tmp/render_response.txt
+          echo "HTTP status: $HTTP_STATUS"
+          if [[ "$HTTP_STATUS" != "2"* ]]; then
+            echo "❌ Deploy hook failed with status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "✅ Render deploy triggered successfully"
