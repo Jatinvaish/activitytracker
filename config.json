@@ -1,0 +1,19 @@
+{
+  "user": "",
+  "googleSheets": {
+    "spreadsheetId": "",
+    "range": "Sheet1!A1",
+    "clientEmail": "",
+    "privateKey": ""
+  },
+  "email": {
+    "host": "",
+    "port": 587,
+    "user": "",
+    "pass": ""
+  },
+  "crm": {
+    "apiUrl": "",
+    "apiKey": ""
+  }
+}
