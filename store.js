@@ -1,8 +1,7 @@
-const Store = require('electron-store').default;
+const Store = require('electron-store');
 const path = require('path');
 const os = require('os');
 
-// Resolve app data dir whether running inside Electron or plain Node
 function getAppDataDir() {
   try {
     const { app } = require('electron');
@@ -21,25 +20,11 @@ function getStore() {
 }
 
 function getConfig() {
-  const store = getStore();
+  const s = getStore();
   return {
-    user: store.get('user', ''),
-    googleSheets: {
-      spreadsheetId: store.get('googleSheets.spreadsheetId', ''),
-      range:         store.get('googleSheets.range', 'Sheet1!A1'),
-      clientEmail:   store.get('googleSheets.clientEmail', ''),
-      privateKey:    store.get('googleSheets.privateKey', ''),
-    },
-    email: {
-      host: store.get('email.host', ''),
-      port: store.get('email.port', 587),
-      user: store.get('email.user', ''),
-      pass: store.get('email.pass', ''),
-    },
-    crm: {
-      apiUrl: store.get('crm.apiUrl', ''),
-      apiKey: store.get('crm.apiKey', ''),
-    },
+    serverUrl:    s.get('serverUrl', ''),
+    apiSecret:    s.get('apiSecret', ''),
+    user:         s.get('user', ''),
   };
 }
 

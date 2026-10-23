@@ -140,6 +140,10 @@
 <script>
   const { ipcRenderer, desktopCapturer } = require('electron');
 
+  // ── Backend config ────────────────────────────────────────────────────────
+  const BACKEND_URL    = 'https://activity-tracker-api.onrender.com';
+  const API_SECRET     = process.env.API_SECRET || '';
+
   // ── Version ──────────────────────────────────────────────────────────────
   ipcRenderer.invoke('app-version').then(v => {
     document.getElementById('version').textContent = 'v' + v;
@@ -273,9 +277,9 @@
     renderRecent();
 
     try {
-      const res = await fetch('http://127.0.0.1:3056/log', {
+      const res = await fetch(`${BACKEND_URL}/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
         body: JSON.stringify({ activity, username, timestamp: entry.time, screenshotBase64: shot }),
       });
       entry.sync = res.ok ? 'ok' : 'err';
@@ -295,12 +299,12 @@
   const badge = document.getElementById('serverBadge');
   async function ping() {
     try {
-      const r = await fetch('http://127.0.0.1:3056/status');
+      const r = await fetch(`${BACKEND_URL}/status`);
       const d = await r.json();
-      badge.textContent = d.status === 'running' ? 'Server Online' : 'Server Error';
+      badge.textContent = d.status === 'running' ? 'Connected' : 'Server Error';
       badge.className = 'badge ' + (d.status === 'running' ? 'online' : 'offline');
     } catch {
-      badge.textContent = 'Server Offline';
+      badge.textContent = 'Offline';
       badge.className = 'badge offline';
     }
   }
