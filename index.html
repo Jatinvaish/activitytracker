@@ -1,429 +1,765 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>Activity Tracker</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-    /* ── Name screen ── */
-    #nameScreen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
-    #nameScreen h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-    #nameScreen p  { font-size: 0.9rem; color: #666; }
-    #nameInput {
-      width: 320px; padding: 0.75rem 1rem; background: #1a1a1a; border: 1px solid #333;
-      border-radius: 8px; color: #e0e0e0; font-size: 1rem; outline: none; text-align: center;
-      transition: border-color 0.15s;
+    [hidden] { display: none !important; }
+    :root {
+      --bg: #0f0f0f; --panel: #151515; --panel-2: #1b1b1b; --line: #252525; --line-2: #313131;
+      --text: #e6e6e6; --muted: #858585; --faint: #555;
+      --green: #4caf87; --green-bg: #1e3a2f; --amber: #c89050; --amber-bg: #3a2a1e;
+      --blue: #5a9fd4; --blue-bg: #1c2c3c; --purple: #9b7fd4; --purple-bg: #2a2340;
+      --grey: #6b6b6b; --grey-bg: #262626; --red: #e07a8b; --red-bg: #3a1e24;
     }
-    #nameInput:focus { border-color: #4caf87; }
-    #startBtn {
-      width: 320px; padding: 0.75rem; background: #4caf87; color: #0a0a0a;
-      border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer;
-      transition: opacity 0.15s; opacity: 0.4;
-    }
-    #startBtn.ready { opacity: 1; cursor: pointer; }
+    html, body { height: 100%; }
+    body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; -webkit-font-smoothing: antialiased; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    .muted { color: var(--muted); } .small { font-size: 0.78rem; }
 
-    /* ── Dashboard ── */
-    #dashboard { flex: 1; display: none; flex-direction: column; overflow: hidden; }
-
-    header { padding: 0.6rem 1.25rem; background: #1a1a1a; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
-    header h1 { font-size: 0.95rem; font-weight: 600; flex: 1; }
-    .user-chip { background: #1e3a2f; color: #4caf87; padding: 0.2rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-    .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 500; }
-    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-    .badge.active { background: #1e3a2f; color: #4caf87; }
-    .badge.idle   { background: #3a2a1e; color: #c89050; }
-
-    .layout { display: flex; flex: 1; overflow: hidden; }
-
-    aside { width: 200px; background: #111; border-right: 1px solid #222; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
-    aside h2 { padding: 0.9rem 0.9rem 0.4rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
-    #statsList { padding: 0 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .stat-card { background: #1a1a1a; border: 1px solid #252525; border-radius: 6px; padding: 0.6rem 0.75rem; }
-    .stat-card .label { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2rem; }
-    .stat-card .value { font-size: 1.1rem; font-weight: 700; color: #e0e0e0; }
-    .stat-card .value.green { color: #4caf87; }
-    .stat-card .value.amber { color: #c89050; }
-
-    main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .date-bar { padding: 0.6rem 1.25rem; background: #141414; border-bottom: 1px solid #1e1e1e; font-size: 0.78rem; color: #666; flex-shrink: 0; }
-    .timeline-wrap { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
-
-    .entry { background: #151515; border: 1px solid #222; border-radius: 8px; padding: 0.75rem 1rem; display: flex; align-items: flex-start; gap: 1rem; animation: fadeIn 0.2s; }
-    .entry.active-entry { border-left: 3px solid #4caf87; }
-    .entry.idle-entry   { border-left: 3px solid #c89050; }
-    .entry-time   { font-size: 0.75rem; color: #555; white-space: nowrap; min-width: 130px; padding-top: 0.1rem; }
-    .entry-body   { flex: 1; }
-    .entry-status { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.2rem; }
-    .entry-status.active { color: #4caf87; }
-    .entry-status.idle   { color: #c89050; }
-    .entry-dur    { font-size: 0.72rem; color: #555; }
-    .entry-actions { display: flex; gap: 0.4rem; align-items: center; }
-
-    .btn-adj { background: none; border: 1px solid #333; border-radius: 4px; color: #888; font-size: 0.7rem; padding: 0.2rem 0.6rem; cursor: pointer; transition: all 0.15s; }
-    .btn-adj:hover { border-color: #c89050; color: #c89050; }
-    .btn-adj.sent  { border-color: #4caf87; color: #4caf87; cursor: default; }
-
-    .adj-form  { margin-top: 0.5rem; display: flex; gap: 0.4rem; }
-    .adj-input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 0.3rem 0.6rem; color: #e0e0e0; font-size: 0.78rem; outline: none; }
-    .adj-input:focus { border-color: #c89050; }
-    .btn-send  { background: #c89050; color: #0a0a0a; border: none; border-radius: 4px; padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; white-space: nowrap; }
-    .btn-send:disabled, .adj-input:disabled { opacity: 0.6; cursor: wait; }
-    .adj-error { font-size: 0.72rem; color: #e07a8b; margin-top: 0.3rem; }
-    .adj-done  { font-size: 0.72rem; color: #4caf87; margin-top: 0.3rem; }
-
-    .spinner {
-      display: inline-block; width: 12px; height: 12px; margin-right: 0.4rem;
-      border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: currentColor;
-      border-radius: 50%; animation: spin 0.6s linear infinite;
-    }
-    #startBtn .spinner { width: 14px; height: 14px; vertical-align: -2px; }
-    #startBtn:disabled { cursor: wait; }
-    #nameError { min-height: 1em; font-size: 0.8rem; color: #e07a8b; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; height: 32px; padding: 0 0.8rem; border-radius: 7px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text); font-size: 0.82rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .btn:hover:not(:disabled) { background: #232323; border-color: #3c3c3c; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .btn.primary { background: var(--green); border-color: var(--green); color: #0a0a0a; font-weight: 600; }
+    .btn.primary:hover:not(:disabled) { background: #5cc296; }
+    .btn.small { height: 26px; padding: 0 0.55rem; font-size: 0.74rem; }
+    .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+    .btn.danger-ghost { background: transparent; border-color: transparent; color: var(--red); }
+    .link { background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; font-size: inherit; }
+    .input, .select, textarea.input { height: 32px; padding: 0 0.6rem; border-radius: 7px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text); outline: none; font-size: 0.84rem; }
+    textarea.input { height: auto; padding: 0.45rem 0.6rem; resize: vertical; line-height: 1.4; width: 100%; }
+    .input:focus, .select:focus { border-color: var(--green); }
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.25); border-top-color: currentColor; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    .btn.primary .spinner { border-color: rgba(0,0,0,0.25); border-top-color: #0a0a0a; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .empty { color: #333; font-size: 0.85rem; padding: 2rem; text-align: center; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
+    .pill { display: inline-flex; align-items: center; height: 20px; padding: 0 0.5rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+    .pill.active, .pill.approved { background: var(--green-bg); color: var(--green); }
+    .pill.meeting { background: var(--blue-bg); color: var(--blue); }
+    .pill.idle, .pill.pending { background: var(--amber-bg); color: var(--amber); }
+    .pill.break { background: var(--purple-bg); color: var(--purple); }
+    .pill.away { background: var(--grey-bg); color: #a0a0a0; }
+    .pill.rejected { background: var(--red-bg); color: var(--red); }
+
+    /* ── Setup / blocked ── */
+    .center { height: 100%; display: flex; padding: 24px; overflow-y: auto; }
+    .card-setup { width: 100%; max-width: 520px; margin: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 2rem; }
+    .card-setup h1 { font-size: 1.35rem; margin-bottom: 0.35rem; }
+    .card-setup p { color: var(--muted); margin-bottom: 1.1rem; }
+    .card-setup .input { width: 100%; height: 42px; font-size: 1rem; margin-bottom: 0.8rem; }
+    .card-setup .btn { height: 42px; width: 100%; font-size: 0.95rem; }
+    .consent-list { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; margin: 0 0 1.2rem; }
+    .consent-list li { display: flex; gap: 0.65rem; padding: 0.65rem 0.8rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+    .consent-list b { display: block; font-weight: 600; margin-bottom: 0.1rem; }
+    .consent-list span { color: var(--muted); font-size: 0.8rem; }
+    .consent-list .ic { width: 8px; height: 8px; margin-top: 0.4rem; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .form-error { color: var(--red); font-size: 0.8rem; min-height: 1.1em; margin-top: 0.5rem; }
+
+    /* ── App shell ── */
+    #app { height: 100%; display: flex; flex-direction: column; }
+    .top { display: flex; align-items: center; gap: 1rem; height: 54px; padding: 0 1.1rem; border-bottom: 1px solid var(--line); background: #121212; flex-shrink: 0; }
+    .brand { display: flex; align-items: center; gap: 0.55rem; font-weight: 700; white-space: nowrap; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--grey); flex-shrink: 0; }
+    .dot.active { background: var(--green); box-shadow: 0 0 0 3px rgba(76,175,135,0.18); }
+    .dot.idle { background: var(--amber); } .dot.meeting { background: var(--blue); } .dot.break { background: var(--purple); } .dot.away { background: var(--grey); }
+    .tabs { display: flex; gap: 0.2rem; flex: 1; }
+    .tabs button { height: 32px; padding: 0 0.8rem; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .tabs button:hover, .tabs button.on { background: var(--panel-2); color: var(--text); }
+    .tabs .count { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--amber); color: #0a0a0a; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .top-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .chip { background: var(--green-bg); color: var(--green); padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .break-wrap { position: relative; }
+    .menu { position: absolute; right: 0; top: 38px; z-index: 20; min-width: 140px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 8px; padding: 0.3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+    .menu button { display: block; width: 100%; text-align: left; padding: 0.45rem 0.6rem; border: 0; border-radius: 5px; background: none; cursor: pointer; }
+    .menu button:hover { background: #262626; }
+
+    .banner { padding: 0.55rem 1.1rem; font-size: 0.8rem; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+    .banner.warn { background: var(--amber-bg); color: #e3b07a; }
+    .banner.info { background: var(--blue-bg); color: #9cc6ea; }
+
+    main { flex: 1; overflow-y: auto; }
+    .page { padding: 1.1rem; max-width: 1240px; margin: 0 auto; }
+    .today { display: grid; grid-template-columns: 270px 1fr; gap: 1rem; align-items: start; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .card + .card { margin-top: 1rem; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); }
+    .card-head h2 { font-size: 0.86rem; font-weight: 600; }
+    .card-body { padding: 1rem; }
+
+    .ring-wrap { display: flex; flex-direction: column; align-items: center; padding: 1.2rem 1rem 0.6rem; }
+    .ring { position: relative; width: 150px; height: 150px; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring .center-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring .big { font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stats { list-style: none; padding: 0.4rem 1rem 1rem; }
+    .stats li { display: flex; align-items: center; justify-content: space-between; padding: 0.42rem 0; border-bottom: 1px solid #1f1f1f; font-size: 0.82rem; }
+    .stats li:last-child { border-bottom: 0; }
+    .stats .k { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); }
+    .stats .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+    .sw.active { background: var(--green); } .sw.meeting { background: var(--blue); } .sw.idle { background: var(--amber); } .sw.break { background: var(--purple); } .sw.away { background: var(--grey); }
+    .apps { list-style: none; padding: 0.6rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.55rem; }
+    .apps li { font-size: 0.8rem; }
+    .apps .row { display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.25rem; }
+    .apps .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .apps .bar { height: 4px; border-radius: 2px; background: #222; overflow: hidden; }
+    .apps .bar i { display: block; height: 100%; background: var(--green); }
+
+    .live { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.1rem; }
+    .live .label { font-size: 1.05rem; font-weight: 700; }
+    .live .meta { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
+    .live .timer { margin-left: auto; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .tl { position: relative; height: 26px; border-radius: 6px; background: #1d1d1d; overflow: hidden; }
+    .tl i { position: absolute; top: 0; bottom: 0; width: 1px; background: #2b2b2b; }
+    .seg { position: absolute; top: 4px; bottom: 4px; min-width: 2px; border-radius: 2px; }
+    .seg.active { background: var(--green); } .seg.meeting { background: var(--blue); } .seg.idle { background: var(--amber); } .seg.break { background: var(--purple); } .seg.away { background: var(--grey); }
+    .seg.open { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+    .tl-axis { position: relative; height: 16px; margin-top: 4px; font-size: 0.66rem; color: var(--faint); }
+    .tl-axis span { position: absolute; transform: translateX(-50%); }
+    .tl-axis span.start { transform: none; } .tl-axis span.end { transform: translateX(-100%); }
+    .legend { display: flex; flex-wrap: wrap; gap: 0.8rem; font-size: 0.72rem; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+
+    .shots { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+    .shot { width: 220px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .shot img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #000; }
+    .shot .row { display: flex; align-items: center; justify-content: space-between; padding: 0.45rem 0.6rem; font-size: 0.74rem; }
+
+    .segs { list-style: none; }
+    .segs > li { padding: 0.7rem 1rem; border-bottom: 1px solid var(--line); }
+    .segs > li:last-child { border-bottom: 0; }
+    .seg-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .seg-row .time { min-width: 110px; font-variant-numeric: tabular-nums; }
+    .seg-row .dur { min-width: 60px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .seg-row .extra { color: var(--muted); font-size: 0.76rem; flex: 1; min-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .seg-row .act { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; }
+    .adj-form { margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.45rem; }
+    .adj-form .buttons { display: flex; gap: 0.4rem; justify-content: flex-end; }
+    .empty { padding: 2rem 1rem; text-align: center; color: var(--muted); }
+    .error-box { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 1rem; border-radius: 10px; background: var(--red-bg); color: var(--red); }
+    .loading { padding: 3rem 1rem; text-align: center; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 0.6rem; }
+
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; margin-bottom: 1rem; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem 0.95rem; }
+    .kpi .k { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+    .kpi .v { font-size: 1.35rem; font-weight: 700; margin-top: 0.2rem; font-variant-numeric: tabular-nums; }
+    .kpi .d { font-size: 0.74rem; color: var(--muted); margin-top: 0.1rem; }
+    table.tbl { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .tbl th { text-align: left; padding: 0.55rem 0.9rem; font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .tbl td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .tbl tr:last-child td { border-bottom: 0; }
+    .tbl .num { text-align: right; }
+    .tbl .tlc { width: 40%; min-width: 220px; }
+    .tbl .tl { height: 16px; } .tbl .seg { top: 3px; bottom: 3px; }
+
+    .reqs { list-style: none; }
+    .reqs li { padding: 0.85rem 1rem; border-bottom: 1px solid var(--line); }
+    .reqs li:last-child { border-bottom: 0; }
+    .reqs .head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+    .reqs .note { white-space: pre-wrap; word-break: break-word; }
+    .reqs .owner { margin-top: 0.4rem; padding: 0.5rem 0.7rem; border-left: 3px solid var(--line-2); background: var(--panel-2); border-radius: 4px; white-space: pre-wrap; word-break: break-word; font-size: 0.8rem; }
+
+    .foot { display: flex; align-items: center; gap: 0.8rem; padding: 0.4rem 1.1rem; border-top: 1px solid var(--line); font-size: 0.72rem; color: var(--muted); flex-shrink: 0; }
+    .foot .grow { flex: 1; }
+    #toast { position: fixed; right: 16px; bottom: 40px; z-index: 50; padding: 0.6rem 0.9rem; background: var(--panel-2); border: 1px solid var(--line-2); border-left: 3px solid var(--green); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    #toast.err { border-left-color: var(--red); }
+
+    @media (max-width: 960px) { .today { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
   </style>
 </head>
 <body>
 
-<div id="nameScreen">
-  <h1>Activity Tracker</h1>
-  <p>Enter your name to start tracking</p>
-  <input type="text" id="nameInput" placeholder="Your name…" autocomplete="off" />
-  <button id="startBtn" onclick="submitName()">Start Tracking</button>
-  <div id="nameError" role="alert"></div>
-</div>
-
-<div id="dashboard">
-  <header>
+<div id="setup" class="center" hidden>
+  <form class="card-setup" id="nameStep" autocomplete="off">
     <h1>Activity Tracker</h1>
-    <span id="userChip" class="user-chip"></span>
-    <span id="statusBadge" class="badge active">Active</span>
-  </header>
-  <div class="layout">
-    <aside>
-      <h2>Today</h2>
-      <div id="statsList">
-        <div class="stat-card"><div class="label">Active Time</div><div class="value green" id="statActive">0m</div></div>
-        <div class="stat-card"><div class="label">Idle Time</div><div class="value amber" id="statIdle">0m</div></div>
-        <div class="stat-card"><div class="label">Sessions</div><div class="value" id="statSessions">0</div></div>
-      </div>
-    </aside>
-    <main>
-      <div class="date-bar" id="dateBar"></div>
-      <div style="padding:0.6rem 1.25rem 0;flex-shrink:0;" id="liveSession"></div>
-      <div class="timeline-wrap" id="timeline"></div>
-    </main>
+    <p>Enter your name as your admin knows you. It appears on every report.</p>
+    <input id="nameInput" class="input" placeholder="Your full name" maxlength="60">
+    <button type="submit" class="btn primary" id="nameBtn">Continue</button>
+    <div class="form-error" id="nameError" role="alert"></div>
+  </form>
+
+  <div class="card-setup" id="consentStep" hidden>
+    <h1>Before you start</h1>
+    <p>Activity Tracker records your work time on this computer for your company. Here is exactly what it collects:</p>
+    <ul class="consent-list">
+      <li><i class="ic"></i><div><b>When you are active, idle or away</b><span>From keyboard and mouse activity, and when the screen is locked. What you type is never recorded.</span></div></li>
+      <li><i class="ic"></i><div><b>Activity level</b><span>How many seconds in each 10 minutes had keyboard or mouse input.</span></div></li>
+      <li><i class="ic"></i><div><b>Apps and websites</b><span>The name of the app in front and, for browsers, the site name. Your admin can turn this off.</span></div></li>
+      <li><i class="ic"></i><div><b>Calls</b><span>Whether your microphone or camera is in use, so calls count as work instead of idle time.</span></div></li>
+      <li><i class="ic"></i><div><b>Screenshots</b><span>Only if your admin turns them on. Taken at random times while you are active. You can delete each one within 5 minutes, before it uploads. Deleted after 30 days.</span></div></li>
+    </ul>
+    <p class="small">Your admin can see this data. You can see your own day, history and requests in this window at any time.</p>
+    <button type="button" class="btn primary" id="consentBtn">I agree, start tracking</button>
+    <div class="form-error" id="consentError" role="alert"></div>
+    <p class="small" style="margin:0.8rem 0 0;text-align:center"><button type="button" class="link" id="backToName">Change name</button></p>
   </div>
 </div>
 
+<div id="blocked" class="center" hidden>
+  <div class="card-setup">
+    <h1 id="blockedTitle">Tracking is off</h1>
+    <p id="blockedText"></p>
+    <button type="button" class="btn" id="blockedRetry">Check again</button>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="brand"><span class="dot" id="hdrDot"></span>Activity Tracker</div>
+    <nav class="tabs" id="tabs">
+      <button type="button" data-tab="today" class="on">Today</button>
+      <button type="button" data-tab="history">History</button>
+      <button type="button" data-tab="requests">Requests</button>
+    </nav>
+    <div class="top-actions">
+      <select id="projectSelect" class="select" title="Current project" hidden></select>
+      <div class="break-wrap">
+        <button type="button" class="btn" id="breakBtn">Take a break</button>
+        <div class="menu" id="breakMenu" hidden>
+          <button type="button" data-break="break">Break</button>
+          <button type="button" data-break="lunch">Lunch</button>
+        </div>
+      </div>
+      <span class="chip" id="nameChip"></span>
+    </div>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+
+  <main>
+    <section id="tab-today" class="page">
+      <div class="today">
+        <div>
+          <div class="card">
+            <div class="ring-wrap">
+              <div class="ring">
+                <svg width="150" height="150" viewBox="0 0 150 150">
+                  <circle cx="75" cy="75" r="62" fill="none" stroke="#222" stroke-width="12"/>
+                  <circle id="ringArc" cx="75" cy="75" r="62" fill="none" stroke="#4caf87" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 400"/>
+                </svg>
+                <div class="center-text"><span class="big" id="ringWorked">0m</span><span class="muted small" id="ringGoal">of 8h goal</span></div>
+              </div>
+            </div>
+            <ul class="stats">
+              <li><span class="k"><i class="sw active"></i>Active</span><span class="v" id="stActive">0m</span></li>
+              <li><span class="k"><i class="sw meeting"></i>Meetings</span><span class="v" id="stMeeting">0m</span></li>
+              <li><span class="k"><i class="sw idle"></i>Idle</span><span class="v" id="stIdle">0m</span></li>
+              <li><span class="k"><i class="sw break"></i>Breaks</span><span class="v" id="stBreak">0m</span></li>
+              <li><span class="k"><i class="sw away"></i>Away</span><span class="v" id="stAway">0m</span></li>
+              <li><span class="k">Activity level</span><span class="v" id="stActivity">—</span></li>
+            </ul>
+          </div>
+          <div class="card" id="appsCard" hidden>
+            <div class="card-head"><h2>Top apps today</h2></div>
+            <ul class="apps" id="appsList"></ul>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="live">
+              <span class="dot" id="liveDot" style="width:14px;height:14px"></span>
+              <div><div class="label" id="liveLabel">—</div><div class="meta" id="liveMeta"></div></div>
+              <div class="timer" id="liveTimer">0:00</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Your day</h2><div class="legend">
+              <span><i class="sw active"></i>Active</span><span><i class="sw meeting"></i>Meeting</span><span><i class="sw idle"></i>Idle</span><span><i class="sw break"></i>Break</span><span><i class="sw away"></i>Away</span>
+            </div></div>
+            <div class="card-body" id="timeline"></div>
+          </div>
+          <div class="card" id="shotsCard" hidden>
+            <div class="card-head"><h2>Screenshots waiting to upload</h2><span class="muted small">Delete any you don't want your admin to see</span></div>
+            <div class="card-body"><div class="shots" id="shotsList"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Sessions</h2><span class="muted small">Something wrong? Request a change on any session.</span></div>
+            <ul class="segs" id="segList"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-history" class="page" hidden></section>
+    <section id="tab-requests" class="page" hidden></section>
+  </main>
+
+  <footer class="foot">
+    <span id="footSync"></span>
+    <button type="button" class="link" id="syncBtn">Sync now</button>
+    <span class="grow"></span>
+    <span id="footVersion"></span>
+  </footer>
+</div>
+
+<div id="toast" hidden></div>
+
 <script>
-// ── Electron IPC ──────────────────────────────────────────────────────────────
 const { ipcRenderer } = require('electron');
 
-const BACKEND_URL = 'https://activitytracker-gvnr.onrender.com';
-const API_SECRET  = '71ddb21c90749e011a1fa72d77da08ce6ef4f7227dc3996a27a540a7a0b31b6f';
+let S = null;
+let tab = 'today';
+let lastStage = null;
+let listSig = '', shotsSig = '', projectsSig = '', appsSig = '', timelineSig = '';
+const drafts = new Map();            // segment key → draft text while a request form is open
+let historyCache = null;
 
-// ── Name input: enable button as user types ───────────────────────────────────
-const nameInput = document.getElementById('nameInput');
-const startBtn  = document.getElementById('startBtn');
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+function esc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function errMsg(e) { return String((e && e.message) || e).replace(/^Error invoking remote method '[^']+': (?:\w*Error: )?/, ''); }
+function fmtTime(v) { return new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+function fmtDay(v) { return new Date(v).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
+function fmtDur(mins) { mins = Math.max(0, Math.round(mins || 0)); const h = Math.floor(mins / 60); return h ? h + 'h ' + pad(mins % 60) + 'm' : mins + 'm'; }
+function fmtClock(secs) { secs = Math.max(0, Math.floor(secs)); const h = Math.floor(secs / 3600), m = Math.floor(secs % 3600 / 60), s = secs % 60; return (h ? h + ':' + pad(m) : m) + ':' + pad(s); }
+function ago(isoStr) { const m = Math.round((Date.now() - Date.parse(isoStr)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : fmtTime(isoStr); }
+function minsOf(s) { return (Date.parse(s.end_time) - Date.parse(s.start_time)) / 60000; }
+function dayKey(v) { const d = new Date(v); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
-function syncBtn() {
-  if (nameInput.value.trim().length > 0) {
-    startBtn.classList.add('ready');
-  } else {
-    startBtn.classList.remove('ready');
-  }
+function bucket(s) {
+  if (s.category === 'meeting') return 'meeting';
+  if (s.category === 'break' || s.category === 'lunch') return 'break';
+  if (s.status === 'active') return 'active';
+  if (s.status === 'away') return 'away';
+  return 'idle';
+}
+const BUCKET_LABEL = { active: 'Active', meeting: 'Meeting', idle: 'Idle', break: 'Break', away: 'Away' };
+function segLabel(s) {
+  if (s.category === 'lunch') return 'Lunch';
+  if (s.category === 'other' && s.status === 'idle') return 'Idle · other';
+  return BUCKET_LABEL[bucket(s)];
 }
 
-nameInput.oninput  = syncBtn;
-nameInput.onkeyup  = syncBtn;
-nameInput.onchange = syncBtn;
-nameInput.onkeydown = function(e) {
-  if (e.key === 'Enter') submitName();
-};
-
-async function submitName() {
-  const username = nameInput.value.trim();
-  if (!username || startBtn.disabled) return;
-  const errEl = document.getElementById('nameError');
-  errEl.textContent = '';
-  startBtn.disabled = true;
-  nameInput.disabled = true;
-  startBtn.innerHTML = '<span class="spinner"></span>Starting…';
-  try {
-    await ipcRenderer.invoke('name-set', username);
-    beginTracking(username);
-  } catch (e) {
-    errEl.textContent = 'Could not save your name. Please try again.';
-    startBtn.disabled = false;
-    nameInput.disabled = false;
-    startBtn.textContent = 'Start Tracking';
-  }
+function totals(list) {
+  const t = { active: 0, meeting: 0, idle: 0, break: 0, away: 0 };
+  list.forEach(s => { t[bucket(s)] += minsOf(s); });
+  t.worked = t.active + t.meeting;
+  return t;
 }
 
-// ── On load: check if we already have a username (silent start) ───────────────
-ipcRenderer.invoke('get-username').then(function(username) {
-  if (username) beginTracking(username);
-}).catch(function() {});
-
-// ── Activity tracker (inlined — no external require) ─────────────────────────
-const IDLE_THRESHOLD_MS = 5 * 60 * 1000;
-const POLL_INTERVAL_MS  = 30 * 1000;
-
-let trackerUsername   = null;
-let sessionStart      = Date.now();
-let lastActivity      = Date.now();
-let currentStatus     = 'active';
-let pollTimer         = null;
-const sessions        = [];
-const adjSentMap      = {};
-
-function trackerStart(username) {
-  trackerUsername = username;
-  sessionStart    = Date.now();
-  lastActivity    = Date.now();
-  currentStatus   = 'active';
-
-  document.addEventListener('mousemove', bumpLocal, { passive: true });
-  document.addEventListener('mousedown', bumpLocal, { passive: true });
-  document.addEventListener('keydown',   bumpLocal, { passive: true });
-  document.addEventListener('wheel',     bumpLocal, { passive: true });
-
-  pollTimer = setInterval(checkIdle, POLL_INTERVAL_MS);
-  checkIdle();
+function toast(msg, isErr) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = isErr ? 'err' : '';
+  el.hidden = false;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { el.hidden = true; }, isErr ? 6000 : 3000);
 }
 
-function trackerStop() {
-  clearInterval(pollTimer);
-  flushSession(currentStatus);
+function busy(btn, on, label) {
+  if (on) { btn.dataset.label = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>' + esc(label); }
+  else { btn.disabled = false; if (btn.dataset.label) btn.innerHTML = btn.dataset.label; }
 }
 
-function bumpLocal() {
-  lastActivity = Date.now();
-  if (currentStatus === 'idle') {
-    flushSession('idle');
-    sessionStart  = lastActivity;
-    currentStatus = 'active';
-  }
+// ── Timeline ──────────────────────────────────────────────────────────────────
+function offsets(s) {
+  const st = new Date(s.start_time);
+  const midnight = new Date(st.getFullYear(), st.getMonth(), st.getDate());
+  return { a: (st - midnight) / 60000, b: Math.min((Date.parse(s.end_time) - midnight) / 60000, 1440) };
 }
-
-async function checkIdle() {
-  try {
-    const idleSecs = await ipcRenderer.invoke('get-idle-time');
-    const sysIdleMs = idleSecs * 1000;
-    if (sysIdleMs < POLL_INTERVAL_MS) {
-      lastActivity = Date.now() - sysIdleMs;
-    }
-  } catch(e) {}
-
-  const idleMs = Date.now() - lastActivity;
-
-  if (idleMs >= IDLE_THRESHOLD_MS && currentStatus === 'active') {
-    const idleStartedAt = new Date(lastActivity);
-    flushSession('active', new Date(sessionStart), idleStartedAt);
-    sessionStart  = lastActivity;
-    currentStatus = 'idle';
-  } else if (idleMs < IDLE_THRESHOLD_MS && currentStatus === 'idle') {
-    flushSession('idle');
-    sessionStart  = Date.now();
-    currentStatus = 'active';
-  }
+function windowFor(list) {
+  let lo = 9 * 60, hi = 18 * 60;
+  list.forEach(s => { const o = offsets(s); lo = Math.min(lo, Math.floor(o.a / 60) * 60); hi = Math.max(hi, Math.ceil(o.b / 60) * 60); });
+  lo = Math.max(0, lo); hi = Math.min(1440, hi);
+  const step = hourStep({ lo, hi });
+  return { lo, hi: Math.min(1440, lo + Math.ceil((hi - lo) / step) * step) };
 }
-
-function flushSession(status, start, end) {
-  const s = start || new Date(sessionStart);
-  const e = end   || new Date();
-  const durationMs = e - s;
-  if (durationMs < 30000) return;
-
-  const session = {
-    username:  trackerUsername,
-    startTime: s.toISOString(),
-    endTime:   e.toISOString(),
-    duration:  Math.round(durationMs / 60000),
-    status,
-  };
-
-  sessions.push(session);
-  renderTimeline();
-  updateStats();
-  updateStatusBadge(currentStatus);
-  postSession(session);
-
-  sessionStart = e.getTime();
-}
-
-async function postSession(session) {
-  try {
-    await fetch(BACKEND_URL + '/session', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
-      body:    JSON.stringify(session),
-    });
-  } catch(e) {}
-}
-
-// ── Begin tracking + show dashboard ──────────────────────────────────────────
-function beginTracking(username) {
-  document.getElementById('nameScreen').style.display = 'none';
-  const dash = document.getElementById('dashboard');
-  dash.style.display = 'flex';
-
-  document.getElementById('userChip').textContent = username;
-  document.getElementById('dateBar').textContent  =
-    new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  trackerStart(username);
-
-  // Live ticker: update every second
-  setInterval(function() {
-    updateStatusBadge(currentStatus);
-    updateLiveSession();
-    updateStats();
-  }, 1000);
-
-  ipcRenderer.on('flush-and-quit', function() {
-    trackerStop();
-    ipcRenderer.send('flushed-and-quit');
+function hourStep(w) { const h = (w.hi - w.lo) / 60; return (h <= 12 ? 1 : h <= 18 ? 2 : 3) * 60; }
+function timelineBar(list, w) {
+  const step = hourStep(w), span = w.hi - w.lo;
+  let out = '';
+  for (let m = w.lo + step; m < w.hi; m += step) out += '<i style="left:' + ((m - w.lo) / span * 100).toFixed(2) + '%"></i>';
+  list.forEach(s => {
+    const o = offsets(s), a = Math.max(o.a, w.lo), b = Math.min(o.b, w.hi);
+    if (b <= a) return;
+    const tip = segLabel(s) + ' ' + fmtTime(s.start_time) + '–' + fmtTime(s.end_time) + ' (' + fmtDur(minsOf(s)) + ')';
+    out += '<span class="seg ' + bucket(s) + (s.is_open ? ' open' : '') + '" style="left:' + ((a - w.lo) / span * 100).toFixed(3) + '%;width:' + ((b - a) / span * 100).toFixed(3) + '%" title="' + esc(tip) + '"></span>';
   });
+  return '<div class="tl">' + out + '</div>';
 }
-
-function updateLiveSession() {
-  var el = document.getElementById('liveSession');
-  if (!el) return;
-  var elapsed = Math.floor((Date.now() - sessionStart) / 1000);
-  var mins = Math.floor(elapsed / 60);
-  var secs = elapsed % 60;
-  var durStr = mins > 0 ? mins + 'm ' + secs + 's' : secs + 's';
-  var label  = currentStatus === 'active' ? '● Active' : '◌ Idle';
-  var color  = currentStatus === 'active' ? '#4caf87' : '#c89050';
-  el.innerHTML =
-    '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1rem;background:#111;border:1px solid #222;border-left:3px solid ' + color + ';border-radius:8px;font-size:0.78rem;">' +
-      '<span style="color:' + color + ';font-weight:600;">' + label + '</span>' +
-      '<span style="color:#444;font-size:0.7rem;">in progress</span>' +
-      '<span style="margin-left:auto;color:#666;font-size:0.72rem;">' + fmt(new Date(sessionStart).toISOString()) + ' → now</span>' +
-      '<span style="color:' + color + ';font-weight:700;min-width:60px;text-align:right;">' + durStr + '</span>' +
-    '</div>';
+function timelineAxis(w) {
+  const step = hourStep(w), span = w.hi - w.lo;
+  let out = '';
+  for (let m = w.lo; m <= w.hi; m += step) {
+    const cls = m === w.lo ? ' class="start"' : m === w.hi ? ' class="end"' : '';
+    out += '<span' + cls + ' style="left:' + ((m - w.lo) / span * 100).toFixed(2) + '%">' + pad(Math.floor(m / 60)) + ':00</span>';
+  }
+  return '<div class="tl-axis">' + out + '</div>';
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
-function fmt(iso) {
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-function durLabel(mins) {
-  if (mins < 60) return mins + 'm';
-  return Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+function render() {
+  if (!S) return;
+  const setup = S.stage === 'name' || S.stage === 'consent';
+  $('setup').hidden = !setup;
+  $('blocked').hidden = S.stage !== 'blocked';
+  $('app').hidden = S.stage !== 'dashboard';
+  if (S.stage !== lastStage) {
+    lastStage = S.stage;
+    if (S.stage === 'name') { $('nameInput').value = S.name || ''; setTimeout(() => $('nameInput').focus(), 50); }
+  }
+  if (setup) {
+    $('nameStep').hidden = S.stage !== 'name';
+    $('consentStep').hidden = S.stage !== 'consent';
+    return;
+  }
+  if (S.stage === 'blocked') {
+    const revoked = S.reg === 'revoked';
+    $('blockedTitle').textContent = revoked ? 'This computer was removed' : 'This computer was not approved';
+    $('blockedText').textContent = (revoked ? 'Your admin removed this computer, so tracking is off.' : 'Your admin did not approve this computer, so tracking is off.') + ' If you think this is a mistake, contact your admin and then click Check again.';
+    return;
+  }
+  renderHeader();
+  renderBanner();
+  renderFooter();
+  if (tab === 'today') renderToday();
 }
 
-function renderTimeline() {
-  const tl = document.getElementById('timeline');
-  const existingIds = new Set(Array.from(tl.querySelectorAll('.entry')).map(function(el){ return el.id; }));
+function liveStatus() {
+  const t = S.tracker;
+  if (!t) return 'away';
+  if (t.mode === 'break') return 'break';
+  if (t.category === 'meeting') return 'meeting';
+  return t.mode;
+}
 
-  sessions.forEach(function(s, idx) {
-    if (existingIds.has('entry-' + idx)) return;
-    const el = document.createElement('div');
-    el.className = 'entry ' + s.status + '-entry';
-    el.id = 'entry-' + idx;
-    const sent = adjSentMap[idx];
-    el.innerHTML =
-      '<div class="entry-time">' + fmt(s.startTime) + ' → ' + fmt(s.endTime) + '</div>' +
-      '<div class="entry-body">' +
-        '<div class="entry-status ' + s.status + '">' + (s.status === 'active' ? '● Active' : '◌ Idle') + '</div>' +
-        '<div class="entry-dur">' + durLabel(s.duration) + '</div>' +
-        '<div id="adj-' + idx + '"></div>' +
-      '</div>' +
-      '<div class="entry-actions">' +
-        '<button class="btn-adj' + (sent ? ' sent' : '') + '" id="adjBtn-' + idx + '" ' +
-          (sent ? 'disabled' : 'onclick="showAdjForm(' + idx + ')"') + '>' +
-          (sent ? '✓ Sent' : 'Request Adjustment') +
-        '</button>' +
-      '</div>';
-    tl.insertBefore(el, tl.firstChild);
+function renderHeader() {
+  const st = liveStatus();
+  $('hdrDot').className = 'dot ' + st;
+  $('nameChip').textContent = S.name;
+  $('nameChip').title = S.name;
+  const onBreak = S.tracker && S.tracker.mode === 'break';
+  $('breakBtn').textContent = onBreak ? 'End break' : 'Take a break';
+  $('breakBtn').disabled = !S.tracker;
+
+  const sig = JSON.stringify(S.projects) + '|' + (S.tracker && S.tracker.projectId);
+  if (sig !== projectsSig) {
+    projectsSig = sig;
+    const sel = $('projectSelect');
+    sel.hidden = !S.projects.length;
+    sel.innerHTML = '<option value="">No project</option>' + S.projects.map(p =>
+      '<option value="' + esc(p.id) + '">' + esc(p.client ? p.name + ' (' + p.client + ')' : p.name) + '</option>').join('');
+    sel.value = (S.tracker && S.tracker.projectId) || '';
+  }
+}
+
+function renderBanner() {
+  const b = $('banner');
+  let text = '', cls = 'warn';
+  if (S.reg === 'pending') text = 'Waiting for your admin to approve this computer. Your time is being saved here and will upload after approval.';
+  else if (S.online === false && S.queued > 0) text = 'Offline. ' + S.queued + ' item' + (S.queued === 1 ? '' : 's') + ' waiting to upload. Your time is saved on this computer.';
+  else if (S.reg === 'unregistered') { text = 'Connecting to the server… your time is already being recorded.'; cls = 'info'; }
+  b.hidden = !text;
+  b.className = 'banner ' + cls;
+  b.textContent = text;
+}
+
+function renderFooter() {
+  $('footVersion').textContent = 'v' + S.version + (S.settings.screenshots_enabled ? ' · Screenshots on' : '');
+  $('footSync').textContent = S.reg === 'pending' ? 'Waiting for approval'
+    : S.online === false ? 'Offline · retrying automatically'
+    : S.lastSyncAt ? 'Synced ' + ago(S.lastSyncAt) : 'Not synced yet';
+}
+
+function renderToday() {
+  const t = S.tracker;
+  if (!t) return;
+  const segs = t.segments;
+  const tot = totals(segs);
+  const goal = S.settings.daily_goal_mins || 480;
+
+  // Ring + stats
+  const circ = 2 * Math.PI * 62;
+  const frac = Math.min(1, tot.worked / goal);
+  $('ringArc').setAttribute('stroke-dasharray', (frac * circ).toFixed(1) + ' ' + circ.toFixed(1));
+  $('ringArc').style.opacity = frac > 0 ? 1 : 0;
+  $('ringWorked').textContent = fmtDur(tot.worked);
+  $('ringGoal').textContent = Math.round(tot.worked / goal * 100) + '% of ' + fmtDur(goal) + ' goal';
+  $('stActive').textContent = fmtDur(tot.active);
+  $('stMeeting').textContent = fmtDur(tot.meeting);
+  $('stIdle').textContent = fmtDur(tot.idle);
+  $('stBreak').textContent = fmtDur(tot.break);
+  $('stAway').textContent = fmtDur(tot.away);
+  $('stActivity').textContent = t.activityPct === null ? '—' : t.activityPct + '%';
+
+  // Live card
+  const st = liveStatus();
+  const open = segs.find(s => s.is_open && s.source === 'local');
+  const LIVE = { active: 'Working', meeting: 'In a meeting', idle: 'Idle', break: t.category === 'lunch' ? 'At lunch' : 'On a break', away: 'Away' };
+  $('liveDot').className = 'dot ' + st;
+  $('liveLabel').textContent = LIVE[st] || '—';
+  const proj = S.projects.find(p => p.id === t.projectId);
+  const bits = ['since ' + fmtTime(t.since)];
+  if (proj) bits.push(proj.name);
+  if (t.currentApp && st === 'active') bits.push([t.currentApp.app, t.currentApp.label].filter(Boolean).join(' · '));
+  $('liveMeta').textContent = bits.join(' · ');
+  $('liveTimer').textContent = fmtClock((Date.now() - Date.parse(t.since)) / 1000);
+
+  // Top apps
+  const showApps = S.settings.app_tracking && t.topApps.length;
+  $('appsCard').hidden = !showApps;
+  const aSig = JSON.stringify(t.topApps.map(a => [a.app, a.label, Math.round(a.seconds / 60)]));
+  if (showApps && aSig !== appsSig) {
+    appsSig = aSig;
+    const max = t.topApps[0].seconds || 1;
+    $('appsList').innerHTML = t.topApps.map(a =>
+      '<li><div class="row"><span class="name">' + esc(a.app + (a.label ? ' · ' + a.label : '')) + '</span><span class="muted">' + fmtDur(a.seconds / 60) + '</span></div>' +
+      '<div class="bar"><i style="width:' + (a.seconds / max * 100).toFixed(1) + '%"></i></div></li>').join('');
+  }
+
+  // Timeline (redraw once a minute or when segments change)
+  const tSig = segs.length + '|' + Math.floor(Date.now() / 60000) + '|' + segs.map(s => s.client_id + s.category).join();
+  if (tSig !== timelineSig) {
+    timelineSig = tSig;
+    const w = windowFor(segs);
+    $('timeline').innerHTML = segs.length ? timelineBar(segs, w) + timelineAxis(w) : '<div class="muted small">Nothing recorded yet today.</div>';
+  }
+
+  renderShots();
+  renderSegments(segs, open);
+}
+
+function renderShots() {
+  const list = S.shots || [];
+  $('shotsCard').hidden = !list.length;
+  const sig = list.map(s => s.id).join();
+  if (sig !== shotsSig) {
+    shotsSig = sig;
+    $('shotsList').innerHTML = list.map(s =>
+      '<div class="shot"><img src="' + esc(s.thumb) + '" alt="Screenshot at ' + esc(fmtTime(s.taken_at)) + '">' +
+      '<div class="row"><span><span>' + fmtTime(s.taken_at) + '</span>' + (s.blurred ? ' · blurred' : '') + '<br><span class="muted" data-upload="' + esc(s.uploadAt) + '"></span></span>' +
+      '<button type="button" class="btn small danger-ghost" data-discard="' + esc(s.id) + '">Delete</button></div></div>').join('');
+  }
+  document.querySelectorAll('[data-upload]').forEach(el => {
+    const secs = (Date.parse(el.dataset.upload) - Date.now()) / 1000;
+    el.textContent = secs > 0 ? 'uploads in ' + fmtClock(secs) : 'uploading…';
   });
-
-  const empty = tl.querySelector('.empty');
-  if (empty) empty.remove();
 }
 
-function updateStats() {
-  var activeMins = sessions.filter(function(s){ return s.status === 'active'; }).reduce(function(a,s){ return a + s.duration; }, 0);
-  var idleMins   = sessions.filter(function(s){ return s.status === 'idle'; }).reduce(function(a,s){ return a + s.duration; }, 0);
-  // Include live in-progress session
-  var liveMins = Math.floor((Date.now() - sessionStart) / 60000);
-  if (currentStatus === 'active') activeMins += liveMins;
-  else idleMins += liveMins;
-  document.getElementById('statActive').textContent   = durLabel(activeMins);
-  document.getElementById('statIdle').textContent     = durLabel(idleMins);
-  document.getElementById('statSessions').textContent = sessions.length + 1;
+function segKey(s) { return (s.server && s.server.id) ? 'id:' + s.server.id : 'c:' + s.client_id; }
+function latestAdj(s) {
+  const list = (s.server && s.server.adjustments) || [];
+  return list.slice().sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0] || null;
 }
 
-function updateStatusBadge(status) {
-  const b = document.getElementById('statusBadge');
-  if (status === 'active') { b.textContent = 'Active'; b.className = 'badge active'; }
-  else                     { b.textContent = 'Idle';   b.className = 'badge idle';   }
-}
-
-// ── Adjustment request ────────────────────────────────────────────────────────
-function showAdjForm(idx) {
-  const container = document.getElementById('adj-' + idx);
-  if (!container || container.innerHTML) return;
-  container.innerHTML =
-    '<div class="adj-form">' +
-      '<input class="adj-input" id="adjNote-' + idx + '" placeholder="Describe the adjustment…" />' +
-      '<button class="btn-send" id="adjSend-' + idx + '" onclick="submitAdj(' + idx + ')">Send</button>' +
-    '</div>' +
-    '<div class="adj-error" id="adjErr-' + idx + '" role="alert"></div>';
-  var input = document.getElementById('adjNote-' + idx);
-  if (input) {
-    input.focus();
-    input.onkeydown = function(e) { if (e.key === 'Enter') submitAdj(idx); };
+function renderSegments(segs, open) {
+  const sig = segs.map(s => [s.client_id, s.is_open ? 'open' : s.end_time, s.category, s.project_id, (latestAdj(s) || {}).status].join(':')).join('|') + '|' + JSON.stringify(S.projects.map(p => p.id));
+  if (sig !== listSig) {
+    listSig = sig;
+    const rows = segs.slice().reverse();
+    $('segList').innerHTML = rows.length ? rows.map(s => {
+      const key = segKey(s);
+      const adj = latestAdj(s);
+      const proj = S.projects.find(p => p.id === s.project_id);
+      const extra = [s.activity_pct != null && s.status === 'active' ? s.activity_pct + '% activity' : '', proj ? proj.name : '', s.note || '', s.source === 'server' ? 'other computer' : ''].filter(Boolean).join(' · ');
+      const actions = s.is_open ? '<span class="muted small">in progress</span>'
+        : adj && adj.status === 'pending' ? '<span class="pill pending">Change requested</span>'
+        : (adj ? '<span class="pill ' + esc(adj.status) + '">' + (adj.status === 'approved' ? 'Change approved' : 'Change rejected') + '</span> ' : '') +
+          '<button type="button" class="btn small" data-request="' + esc(key) + '">Request a change</button>';
+      const form = drafts.has(key)
+        ? '<div class="adj-form"><textarea class="input" rows="2" maxlength="1000" data-draft="' + esc(key) + '" placeholder="What should change? e.g. I was on a client call from 2 to 3 pm">' + esc(drafts.get(key)) + '</textarea>' +
+          '<div class="form-error" data-err="' + esc(key) + '"></div>' +
+          '<div class="buttons"><button type="button" class="btn small ghost" data-cancel="' + esc(key) + '">Cancel</button><button type="button" class="btn small primary" data-send="' + esc(key) + '">Send request</button></div></div>'
+        : '';
+      return '<li><div class="seg-row">' +
+        '<span class="time">' + fmtTime(s.start_time) + ' – ' + (s.is_open ? 'now' : fmtTime(s.end_time)) + '</span>' +
+        '<span class="pill ' + bucket(s) + '">' + esc(segLabel(s)) + '</span>' +
+        '<span class="dur" ' + (s.is_open ? 'id="openDur"' : '') + '>' + segDur(s) + '</span>' +
+        '<span class="extra" title="' + esc(extra) + '">' + esc(extra) + '</span>' +
+        '<span class="act">' + actions + '</span></div>' + form + '</li>';
+    }).join('') : '<li class="empty">Your sessions will appear here.</li>';
+  } else if (open) {
+    const el = $('openDur');
+    if (el) el.textContent = segDur(open);
   }
 }
 
-async function submitAdj(idx) {
-  var noteEl  = document.getElementById('adjNote-' + idx);
-  var sendBtn = document.getElementById('adjSend-' + idx);
-  var errEl   = document.getElementById('adjErr-' + idx);
-  if (!noteEl || !sendBtn || sendBtn.disabled) return;
-  var note    = noteEl.value.trim();
-  var session = sessions[idx];
-  if (!note) { errEl.textContent = 'Please describe the adjustment.'; return; }
+function segDur(s) { const m = minsOf(s); return m < 1 ? '<1m' : fmtDur(m); }
 
-  errEl.textContent = '';
-  noteEl.disabled  = true;
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = '<span class="spinner"></span>Sending…';
+function findSeg(key) { return S.tracker.segments.find(s => segKey(s) === key); }
 
+// ── History ───────────────────────────────────────────────────────────────────
+async function loadHistory(force) {
+  const view = $('tab-history');
+  if (historyCache && !force && Date.now() - historyCache.at < 60_000) return renderHistory();
+  view.innerHTML = '<div class="loading"><span class="spinner"></span>Loading your last 30 days…</div>';
+  const end = new Date(); end.setHours(0, 0, 0, 0); end.setDate(end.getDate() + 1);
+  const start = new Date(end); start.setDate(start.getDate() - 30);
   try {
-    var res = await fetch(BACKEND_URL + '/adjustment', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
-      body:    JSON.stringify(Object.assign({}, session, { note: note })),
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-
-    adjSentMap[idx] = true;
-    var btn = document.getElementById('adjBtn-' + idx);
-    if (btn) { btn.textContent = '✓ Sent'; btn.classList.add('sent'); btn.disabled = true; btn.removeAttribute('onclick'); }
-    var adjDiv = document.getElementById('adj-' + idx);
-    if (adjDiv) {
-      var done = document.createElement('div');
-      done.className = 'adj-done';
-      done.textContent = 'Request sent: "' + note + '"';
-      adjDiv.replaceChildren(done);
-    }
+    const rows = await ipcRenderer.invoke('fetch-history', { from: start.toISOString(), to: end.toISOString() });
+    historyCache = { at: Date.now(), rows };
+    if (tab === 'history') renderHistory();
   } catch (e) {
-    errEl.textContent = 'Could not send the request. Check your internet connection and try again.';
-    noteEl.disabled  = false;
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Send';
+    view.innerHTML = '<div class="error-box"><span>' + esc(errMsg(e)) + '</span><button type="button" class="btn small" data-reload="history">Try again</button></div>';
   }
 }
+
+function renderHistory() {
+  const rows = historyCache.rows;
+  const byDay = {};
+  rows.forEach(r => { (byDay[dayKey(r.start_time)] = byDay[dayKey(r.start_time)] || []).push(r); });
+  const days = Object.keys(byDay).sort().reverse();
+  const w = windowFor(rows);
+
+  const weekStart = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getTime(); };
+  const thisWeek = weekStart(Date.now()), lastWeek = thisWeek - 7 * 86400_000;
+  let tw = 0, lw = 0, act = 0, actMins = 0;
+  const dayStats = days.map(d => {
+    const list = byDay[d].sort((a, b) => Date.parse(a.start_time) - Date.parse(b.start_time));
+    const t = totals(list);
+    const worked = list.filter(s => ['active', 'meeting'].includes(bucket(s)));
+    list.filter(s => s.status === 'active' && s.activity_pct != null).forEach(s => { act += s.activity_pct * minsOf(s); actMins += minsOf(s); });
+    const ws = weekStart(parseDay(d));
+    if (ws === thisWeek) tw += t.worked; else if (ws === lastWeek) lw += t.worked;
+    return { d, list, t, first: worked[0] && worked[0].start_time, last: list[list.length - 1].end_time };
+  });
+  const workedDays = dayStats.filter(x => x.t.worked >= 1);
+  const avg = workedDays.length ? workedDays.reduce((a, x) => a + x.t.worked, 0) / workedDays.length : 0;
+  const diff = lw ? Math.round((tw - lw) / lw * 100) : null;
+
+  $('tab-history').innerHTML =
+    '<div class="kpis">' +
+      kpi('This week', fmtDur(tw), diff === null ? '' : (diff >= 0 ? '+' : '') + diff + '% vs last week') +
+      kpi('Last week', fmtDur(lw), '') +
+      kpi('Average per work day', fmtDur(avg), workedDays.length + ' days in the last 30') +
+      kpi('Activity level', actMins ? Math.round(act / actMins) + '%' : '—', 'last 30 days') +
+    '</div>' +
+    '<div class="card"><div class="card-head"><h2>Last 30 days</h2><button type="button" class="btn small" data-reload="history">Refresh</button></div>' +
+    (dayStats.length
+      ? '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Day</th><th>First in</th><th>Last out</th><th class="num">Worked</th><th class="num">Idle</th><th class="num">Breaks</th><th class="tlc">' + timelineAxis(w) + '</th></tr></thead><tbody>' +
+        dayStats.map(x => '<tr><td>' + fmtDay(parseDay(x.d)) + '</td><td>' + (x.first ? fmtTime(x.first) : '—') + '</td><td>' + fmtTime(x.last) + '</td>' +
+          '<td class="num" style="color:var(--green)">' + fmtDur(x.t.worked) + '</td><td class="num" style="color:var(--amber)">' + fmtDur(x.t.idle) + '</td><td class="num">' + fmtDur(x.t.break) + '</td>' +
+          '<td class="tlc">' + timelineBar(x.list, w) + '</td></tr>').join('') +
+        '</tbody></table></div>'
+      : '<div class="empty">No history yet.</div>') +
+    '</div>';
+}
+function parseDay(d) { const p = d.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+function kpi(k, v, d) { return '<div class="kpi"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' + (d ? '<div class="d">' + esc(d) + '</div>' : '') + '</div>'; }
+
+// ── Requests ──────────────────────────────────────────────────────────────────
+async function loadRequests() {
+  const view = $('tab-requests');
+  view.innerHTML = '<div class="loading"><span class="spinner"></span>Loading your requests…</div>';
+  try {
+    const list = await ipcRenderer.invoke('fetch-requests');
+    if (tab !== 'requests') return;
+    view.innerHTML = '<div class="card"><div class="card-head"><h2>Your change requests</h2><button type="button" class="btn small" data-reload="requests">Refresh</button></div>' +
+      (list.length ? '<ul class="reqs">' + list.map(a => {
+        const s = a.sessions;
+        const when = s ? fmtDay(s.start_time) + ', ' + fmtTime(s.start_time) + '–' + fmtTime(s.end_time) + ' · ' + segLabel(s) : 'Session';
+        const label = { pending: 'Waiting for admin', approved: 'Approved', rejected: 'Rejected' }[a.status] || a.status;
+        return '<li><div class="head"><span class="pill ' + esc(a.status) + '">' + esc(label) + '</span><b>' + esc(when) + '</b>' +
+          '<span class="muted small">sent ' + esc(new Date(a.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) + '</span></div>' +
+          '<div class="note">' + esc(a.note) + '</div>' +
+          (a.owner_notes ? '<div class="owner"><span class="muted small">Admin: </span>' + esc(a.owner_notes) + '</div>' : '') + '</li>';
+      }).join('') + '</ul>' : '<div class="empty">You haven\'t requested any changes.</div>') + '</div>';
+  } catch (e) {
+    view.innerHTML = '<div class="error-box"><span>' + esc(errMsg(e)) + '</span><button type="button" class="btn small" data-reload="requests">Try again</button></div>';
+  }
+}
+
+// ── Tabs & actions ────────────────────────────────────────────────────────────
+function switchTab(next) {
+  tab = next;
+  document.querySelectorAll('#tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  ['today', 'history', 'requests'].forEach(t => { $('tab-' + t).hidden = t !== tab; });
+  if (tab === 'today') { listSig = shotsSig = appsSig = timelineSig = ''; render(); }
+  if (tab === 'history') loadHistory(false);
+  if (tab === 'requests') loadRequests();
+}
+
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) switchTab(b.dataset.tab); });
+ipcRenderer.on('open-tab', (_, t) => switchTab(t));
+
+$('nameStep').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('nameInput').value.trim();
+  if (!name) { $('nameError').textContent = 'Please enter your name.'; return; }
+  busy($('nameBtn'), true, 'Saving…');
+  try { await ipcRenderer.invoke('set-name', name); $('nameError').textContent = ''; }
+  catch (err) { $('nameError').textContent = errMsg(err); }
+  finally { busy($('nameBtn'), false); }
+});
+
+$('consentBtn').addEventListener('click', async () => {
+  busy($('consentBtn'), true, 'Starting…');
+  try { await ipcRenderer.invoke('accept-consent'); }
+  catch (err) { $('consentError').textContent = errMsg(err); busy($('consentBtn'), false); }
+});
+
+$('backToName').addEventListener('click', () => ipcRenderer.invoke('reset-name'));
+
+$('blockedRetry').addEventListener('click', async () => {
+  busy($('blockedRetry'), true, 'Checking…');
+  try { await ipcRenderer.invoke('sync-now'); } finally { busy($('blockedRetry'), false); }
+});
+
+$('breakBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  if (S.tracker && S.tracker.mode === 'break') { ipcRenderer.invoke('end-break'); return; }
+  $('breakMenu').hidden = !$('breakMenu').hidden;
+});
+$('breakMenu').addEventListener('click', e => {
+  const b = e.target.closest('[data-break]');
+  if (!b) return;
+  $('breakMenu').hidden = true;
+  ipcRenderer.invoke('start-break', b.dataset.break);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.break-wrap')) $('breakMenu').hidden = true; });
+
+$('projectSelect').addEventListener('change', e => ipcRenderer.invoke('set-project', e.target.value || null));
+
+$('syncBtn').addEventListener('click', async () => {
+  busy($('syncBtn'), true, 'Syncing…');
+  try { await ipcRenderer.invoke('sync-now'); } finally { busy($('syncBtn'), false); }
+});
+
+document.addEventListener('click', async e => {
+  const t = e.target;
+  const reload = t.closest('[data-reload]');
+  if (reload) return reload.dataset.reload === 'history' ? loadHistory(true) : loadRequests();
+
+  const discard = t.closest('[data-discard]');
+  if (discard) {
+    await ipcRenderer.invoke('discard-screenshot', discard.dataset.discard);
+    return toast('Screenshot deleted. It was never uploaded.');
+  }
+  const req = t.closest('[data-request]');
+  if (req) { drafts.set(req.dataset.request, ''); listSig = ''; render(); const ta = document.querySelector('[data-draft="' + req.dataset.request + '"]'); if (ta) ta.focus(); return; }
+  const cancel = t.closest('[data-cancel]');
+  if (cancel) { drafts.delete(cancel.dataset.cancel); listSig = ''; return render(); }
+
+  const send = t.closest('[data-send]');
+  if (send) {
+    const key = send.dataset.send;
+    const errEl = document.querySelector('[data-err="' + key + '"]');
+    const note = (drafts.get(key) || '').trim();
+    if (!note) { errEl.textContent = 'Please describe what should change.'; return; }
+    const seg = findSeg(key);
+    if (!seg) { errEl.textContent = 'This session is no longer in today\'s list.'; return; }
+    busy(send, true, 'Sending…');
+    try {
+      await ipcRenderer.invoke('request-adjustment', seg.server && seg.server.id ? { session_id: seg.server.id, note } : { client_id: seg.client_id, note });
+      drafts.delete(key);
+      listSig = '';
+      toast('Request sent to your admin.');
+      render();
+    } catch (err) {
+      errEl.textContent = errMsg(err);
+      busy(send, false);
+    }
+  }
+});
+
+document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.draft) drafts.set(e.target.dataset.draft, e.target.value); });
+
+ipcRenderer.on('state', (_, s) => { S = s; render(); });
+ipcRenderer.invoke('get-state').then(s => { S = s; render(); });
 </script>
 </body>
 </html>

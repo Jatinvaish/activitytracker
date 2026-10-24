@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome back</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    html, body { height: 100%; }
+    body { font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #151515; color: #e6e6e6; border: 1px solid #313131; border-radius: 10px; overflow: hidden; -webkit-font-smoothing: antialiased; }
+    header { -webkit-app-region: drag; display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0.9rem 0.2rem; }
+    header h1 { font-size: 0.95rem; font-weight: 700; }
+    .x { -webkit-app-region: no-drag; background: none; border: 0; color: #858585; font-size: 1.1rem; cursor: pointer; width: 26px; height: 26px; border-radius: 6px; }
+    .x:hover { background: #222; color: #e6e6e6; }
+    p { padding: 0 0.9rem; color: #a0a0a0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; padding: 0.75rem 0.9rem 0; }
+    .opt { height: 36px; border-radius: 7px; border: 1px solid #313131; background: #1b1b1b; color: #e6e6e6; font: inherit; font-weight: 600; cursor: pointer; }
+    .opt:hover { border-color: #4caf87; }
+    .other { padding: 0.75rem 0.9rem 0; display: flex; gap: 0.45rem; }
+    .other input { flex: 1; height: 34px; padding: 0 0.6rem; border-radius: 7px; border: 1px solid #313131; background: #1b1b1b; color: #e6e6e6; font: inherit; outline: none; }
+    .other input:focus { border-color: #4caf87; }
+    .save { height: 34px; padding: 0 0.8rem; border-radius: 7px; border: 0; background: #4caf87; color: #0a0a0a; font: inherit; font-weight: 600; cursor: pointer; }
+    footer { padding: 0.65rem 0.9rem; text-align: right; }
+    .skip { background: none; border: 0; color: #858585; font: inherit; font-size: 0.78rem; cursor: pointer; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Welcome back</h1>
+    <button type="button" class="x" id="close" aria-label="Close">×</button>
+  </header>
+  <p id="summary">You were away.</p>
+  <div class="grid" id="choices">
+    <button type="button" class="opt" data-cat="meeting">Meeting or call</button>
+    <button type="button" class="opt" data-cat="break">Break</button>
+    <button type="button" class="opt" data-cat="lunch">Lunch</button>
+    <button type="button" class="opt" data-cat="other">Something else</button>
+  </div>
+  <form class="other" id="otherForm" hidden>
+    <input id="note" maxlength="200" placeholder="What were you doing?">
+    <button type="submit" class="save">Save</button>
+  </form>
+  <footer><button type="button" class="skip" id="skip">Skip, it was idle time</button></footer>
+
+<script>
+const { ipcRenderer } = require('electron');
+const $ = id => document.getElementById(id);
+const fmt = v => new Date(v).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+async function load() {
+  const d = await ipcRenderer.invoke('prompt-data');
+  if (!d) return window.close();
+  const mins = Math.round((Date.parse(d.end_time) - Date.parse(d.start_time)) / 60000);
+  $('summary').textContent = 'You were away for ' + mins + ' min (' + fmt(d.start_time) + ' – ' + fmt(d.end_time) + '). What were you doing?';
+  $('otherForm').hidden = true;
+  $('choices').hidden = false;
+}
+
+function answer(category, note) { ipcRenderer.invoke('prompt-answer', { category, note }); }
+
+$('choices').addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]');
+  if (!b) return;
+  if (b.dataset.cat === 'other') {
+    $('choices').hidden = true;
+    $('otherForm').hidden = false;
+    $('note').focus();
+    return;
+  }
+  answer(b.dataset.cat, '');
+});
+$('otherForm').addEventListener('submit', e => { e.preventDefault(); answer('other', $('note').value); });
+$('skip').addEventListener('click', () => ipcRenderer.invoke('prompt-dismiss'));
+$('close').addEventListener('click', () => ipcRenderer.invoke('prompt-dismiss'));
+ipcRenderer.on('prompt-refresh', load);
+load();
+</script>
+</body>
+</html>

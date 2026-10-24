@@ -6,12 +6,19 @@ const rateLimit = require('express-rate-limit');
 const db        = require('./db');
 const mailer    = require('./mailer');
 const admin     = require('./admin-api');
+const deviceApi = require('./device-api');
 // const sheets = require('./sheets'); // commented — Sheets kept only for email, not data
 
 const app  = express();
 const PORT = process.env.PORT || 3056;
 
-app.use(helmet());
+// Render sits one proxy in front; without this every client shares one rate-limit bucket
+app.set('trust proxy', 1);
+// Screenshots in the admin page load from Supabase Storage via signed URLs
+const storageOrigin = process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : null;
+app.use(helmet({
+  contentSecurityPolicy: { directives: { imgSrc: ["'self'", 'data:', ...(storageOrigin ? [storageOrigin] : [])] } },
+}));
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '5mb' }));
 app.use(morgan('combined'));
@@ -111,6 +118,7 @@ app.get('/adjustments/pending', auth, async (req, res) => {
 });
 
 app.use('/admin', admin);
+app.use('/v2', deviceApi);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use((err, req, res, next) => res.status(500).json({ error: 'Internal server error' }));

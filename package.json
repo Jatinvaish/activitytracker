@@ -17,13 +17,18 @@
     },
     "files": [
       "main.js",
-      "server.js",
-      "services.js",
-      "store.js",
-      "config.json",
+      "app/**/*",
       "index.html",
+      "prompt.html",
       "package.json",
-      "node_modules/**/*"
+      "node_modules/**/*",
+      "!node_modules/koffi/{src,doc,vendor}/**",
+      "!**/*.env*",
+      "!nextjscrud-*.json",
+      "!backend/**"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**"
     ],
     "publish": {
       "provider": "github",
@@ -31,6 +36,11 @@
       "repo": "activitytracker"
     },
     "win": {
+      "files": [
+        "main.js", "app/**/*", "index.html", "prompt.html", "package.json", "node_modules/**/*",
+        "!node_modules/koffi/{src,doc,vendor}/**", "!**/*.env*", "!nextjscrud-*.json", "!backend/**",
+        "!node_modules/koffi/build/koffi/{darwin,freebsd,linux,musl,openbsd}_*/**"
+      ],
       "target": [
         {
           "target": "nsis",
@@ -42,6 +52,11 @@
       ]
     },
     "linux": {
+      "files": [
+        "main.js", "app/**/*", "index.html", "prompt.html", "package.json", "node_modules/**/*",
+        "!node_modules/koffi/{src,doc,vendor}/**", "!**/*.env*", "!nextjscrud-*.json", "!backend/**",
+        "!node_modules/koffi/build/koffi/{darwin,freebsd,win32,openbsd}_*/**"
+      ],
       "target": [
         {
           "target": "AppImage",
@@ -53,6 +68,11 @@
       "category": "Utility"
     },
     "mac": {
+      "files": [
+        "main.js", "app/**/*", "index.html", "prompt.html", "package.json", "node_modules/**/*",
+        "!node_modules/koffi/{src,doc,vendor}/**", "!**/*.env*", "!nextjscrud-*.json", "!backend/**",
+        "!node_modules/koffi/build/koffi/{freebsd,linux,musl,win32,openbsd}_*/**"
+      ],
       "target": [
         {
           "target": "dmg",
@@ -77,10 +97,8 @@
     "email": "1195jatinvaishnav@gmail.com"
   },
   "dependencies": {
-    "axios": "^1.7.2",
     "electron-updater": "^6.3.0",
-    "googleapis": "^140.0.0",
-    "nodemailer": "^6.9.14"
+    "koffi": "^2.16.3"
   },
   "devDependencies": {
     "bytenode": "^2.0.0",
