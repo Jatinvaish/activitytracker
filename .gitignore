@@ -4,3 +4,7 @@ dist/
 Thumbs.db
 *.log
 nextjscrud-388106-6a0743125449.json
+.env
+*.env
+!.env.example
+.dev-profile/
