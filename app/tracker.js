@@ -351,13 +351,15 @@ class Tracker extends EventEmitter {
       if (localDay(Date.parse(r.start_time)) !== this.day) continue;
       if (this.seg && key === this.seg.client_id) continue;
       const local = this.segments.get(key);
-      if (!local || local.source !== 'local') {
-        this.segments.set(key, {
-          client_id: key, start_time: r.start_time, end_time: r.end_time, status: r.status, category: r.category,
-          note: r.note, project_id: r.project_id, activity_pct: r.activity_pct, is_open: r.is_open,
-          source: !r.device_id ? 'legacy' : r.device_id === ownDevice ? 'synced' : 'server',
-        });
-      }
+      // Local copy wins only while it still has unsent changes; after that the server's version
+      // is the truth (an approved adjustment may have changed it)
+      if (local && local.source === 'local' && this.queue.items.seg[key]) continue;
+      this.segments.set(key, {
+        client_id: key, start_time: r.start_time, end_time: r.end_time, status: r.status, category: r.category,
+        note: r.note, project_id: r.project_id, activity_pct: r.activity_pct, is_open: r.is_open,
+        source: local && local.source === 'local' ? 'local'
+          : !r.device_id ? 'legacy' : r.device_id === ownDevice ? 'synced' : 'server',
+      });
     }
     this.emit('change');
   }

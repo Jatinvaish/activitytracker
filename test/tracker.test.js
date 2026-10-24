@@ -154,6 +154,25 @@ function setup({ start, store = {}, meeting = false, settings = {} }) {
     s.cleanup();
   }
 
+  console.log('8. Server edits (approved adjustments) replace uploaded segments, never unsent ones');
+  {
+    const s = setup({ start: base });
+    await s.run(60, { input: true });
+    s.tracker.startBreak('break');
+    await s.run(60, { input: false });
+    s.tracker.endBreak();
+    const brk = s.segs().find(x => x.category === 'break');
+    const serverRow = { ...brk, id: 'srv-1', device_id: 'dev', status: 'active', category: null, adjustments: [{ status: 'approved' }] };
+    s.tracker.mergeServer([serverRow]);
+    ok(s.segs().find(x => x.client_id === brk.client_id).category === 'break', 'unsent local segment is kept');
+    s.queue.ack(s.queue.take().revs);
+    s.tracker.mergeServer([serverRow]);
+    const after = s.segs().find(x => x.client_id === brk.client_id);
+    ok(after.status === 'active' && after.category === null, 'after upload, the approved change from the server shows');
+    ok(after.source === 'local' && after.server.adjustments[0].status === 'approved', 'still treated as this computer’s segment');
+    s.cleanup();
+  }
+
   console.log(failures ? `\n${failures} FAILED` : '\nALL PASSED');
   process.exit(failures ? 1 : 0);
 })();
