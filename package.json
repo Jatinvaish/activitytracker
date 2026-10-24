@@ -1,6 +1,6 @@
 {
   "name": "activity-utility",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Activity tracker with Google Sheets, email, and CRM integration",
   "main": "main.js",
   "scripts": {
@@ -68,7 +68,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": true
     }
   },
   "author": {

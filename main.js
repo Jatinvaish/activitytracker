@@ -110,7 +110,7 @@ function refreshTray() {
 // ── IPC ───────────────────────────────────────────────────────────────────────
 
 // User submitted their name for the first time
-ipcMain.on('name-set', (_, name) => {
+ipcMain.handle('name-set', (_, name) => {
   saveUsername(name);
   trackedUsername = name;
   // Resize to dashboard, hide — tracking is now silent

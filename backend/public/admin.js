@@ -443,17 +443,42 @@
   function closeModal() { $('#modalRoot').innerHTML = ''; }
   function setBusy(root, on) { root.querySelectorAll('button, input, select, textarea').forEach(el => { el.disabled = on; }); }
 
-  function confirmDialog(title, message, confirmLabel) {
-    return new Promise(resolve => {
-      const m = openModal('<h2>' + esc(title) + '</h2><p class="muted">' + esc(message) + '</p>' +
-        '<div class="modal-actions"><button type="button" class="btn ghost" data-answer="no">Cancel</button>' +
-        '<button type="button" class="btn danger" data-answer="yes">' + esc(confirmLabel) + '</button></div>');
-      m.addEventListener('click', e => {
-        const b = e.target.closest('[data-answer]');
-        if (!b) return;
+  // Shows a spinner + label on a single button while an async action runs, restores it after
+  function btnBusy(btn, on, label) {
+    if (on) {
+      btn.dataset.label = btn.dataset.label || btn.innerHTML;
+      btn.disabled = true;
+      btn.classList.add('busy');
+      btn.innerHTML = '<span class="spinner"></span>' + esc(label || btn.textContent.trim());
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('busy');
+      if (btn.dataset.label) btn.innerHTML = btn.dataset.label;
+    }
+  }
+
+  // Runs onConfirm with the Confirm button in a busy state; dialog stays open and shows the error on failure
+  function confirmDialog(title, message, confirmLabel, busyLabel, onConfirm) {
+    const m = openModal('<h2>' + esc(title) + '</h2><p class="muted">' + esc(message) + '</p>' +
+      '<div class="form-error" data-err role="alert"></div>' +
+      '<div class="modal-actions"><button type="button" class="btn ghost" data-answer="no">Cancel</button>' +
+      '<button type="button" class="btn danger" data-answer="yes">' + esc(confirmLabel) + '</button></div>');
+    const err = $('[data-err]', m);
+    m.addEventListener('click', async e => {
+      const b = e.target.closest('[data-answer]');
+      if (!b) return;
+      if (b.dataset.answer === 'no') { closeModal(); return; }
+      err.textContent = '';
+      setBusy(m, true);
+      btnBusy(b, true, busyLabel);
+      try {
+        await onConfirm();
         closeModal();
-        resolve(b.dataset.answer === 'yes');
-      });
+      } catch (ex) {
+        err.textContent = ex.message;
+        setBusy(m, false);
+        btnBusy(b, false);
+      }
     });
   }
 
@@ -500,7 +525,9 @@
       if (!isEdit && !body.user_id) { err.textContent = 'Choose an employee.'; return; }
       if (!body.start_time || !body.end_time) { err.textContent = 'Start and end are both required.'; return; }
       if (new Date(body.end_time) <= new Date(body.start_time)) { err.textContent = 'End must be after start.'; return; }
+      const submitBtn = form.querySelector('[type=submit]');
       setBusy(m, true);
+      btnBusy(submitBtn, true, isEdit ? 'Saving…' : 'Adding…');
       try {
         await api(isEdit ? '/sessions/' + session.id : '/sessions', { method: isEdit ? 'PATCH' : 'POST', body });
         closeModal();
@@ -509,6 +536,7 @@
       } catch (ex) {
         err.textContent = ex.message;
         setBusy(m, false);
+        btnBusy(submitBtn, false);
       }
     });
   }
@@ -563,6 +591,7 @@
         body.session = { start_time: st, end_time: en, status: f('status').value };
       }
       setBusy(m, true);
+      btnBusy(b, true, { approved: 'Approving…', rejected: 'Rejecting…', pending: 'Reopening…' }[status]);
       try {
         await api('/adjustments/' + a.id, { method: 'PATCH', body });
         closeModal();
@@ -573,40 +602,39 @@
       } catch (ex) {
         err.textContent = ex.message;
         setBusy(m, false);
+        btnBusy(b, false);
       }
     });
   }
 
-  async function deleteEmployee(id) {
+  function deleteEmployee(id) {
     const u = state.users.find(x => x.id === id);
-    const ok = await confirmDialog('Delete employee?',
+    confirmDialog('Delete employee?',
       'This permanently deletes ' + (u ? u.name : 'this employee') + ' with all their sessions and adjustment requests. ' +
-      'If their desktop app is still running, they will reappear when it logs the next session.', 'Delete employee');
-    if (!ok) return;
-    try {
-      await api('/users/' + id, { method: 'DELETE' });
-      toast('Employee deleted');
-      if (state.view === 'employee') nav('employees'); else render();
-    } catch (err) { toast(err.message, 'err'); }
+      'If their desktop app is still running, they will reappear when it logs the next session.',
+      'Delete employee', 'Deleting…',
+      async () => {
+        await api('/users/' + id, { method: 'DELETE' });
+        toast('Employee deleted');
+        if (state.view === 'employee') nav('employees'); else render();
+      });
   }
 
-  async function deleteSession(id) {
+  function deleteSession(id) {
     const s = state.sessionIndex[id];
-    const ok = await confirmDialog('Delete session?',
+    confirmDialog('Delete session?',
       s ? nameOf(s) + ', ' + fmtDay(s.start_time) + ', ' + fmtTime(s.start_time) + '–' + fmtTime(s.end_time) + '. This cannot be undone.' : 'This cannot be undone.',
-      'Delete session');
-    if (!ok) return;
-    try {
-      await api('/sessions/' + id, { method: 'DELETE' });
-      toast('Session deleted');
-      render();
-    } catch (err) { toast(err.message, 'err'); }
+      'Delete session', 'Deleting…',
+      async () => {
+        await api('/sessions/' + id, { method: 'DELETE' });
+        toast('Session deleted');
+        render();
+      });
   }
 
   async function exportCsv(btn) {
     const f = state.sess;
-    btn.disabled = true;
-    btn.textContent = 'Exporting…';
+    btnBusy(btn, true, 'Exporting…');
     try {
       const rows = await fetchAllSessions(Object.assign({ user_id: f.userId, status: f.status }, dayRange(f.from, f.to)));
       const lines = [['Date', 'Employee', 'Start', 'End', 'Duration (min)', 'Status', 'Session ID']]
@@ -624,8 +652,7 @@
     } catch (err) {
       toast(err.message, 'err');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Export CSV';
+      btnBusy(btn, false);
     }
   }
 
@@ -653,12 +680,17 @@
     const fn = { dashboard: renderDashboard, employees: renderEmployees, employee: renderEmployee, sessions: renderSessions, adjustments: renderAdjustments }[state.view];
     const view = $('#view');
     view.classList.add('busy');
+    document.body.classList.add('is-loading');
     return fn(stale)
       .catch(err => {
         if (stale() || err.message === 'Unauthorized') return;
         setView('<div class="error-box"><span>' + esc(err.message) + '</span><button type="button" class="btn" data-action="refresh">Try again</button></div>');
       })
-      .finally(() => { if (!stale()) view.classList.remove('busy'); });
+      .finally(() => {
+        if (stale()) return;
+        view.classList.remove('busy');
+        document.body.classList.remove('is-loading');
+      });
   }
 
   function route() {
@@ -675,7 +707,7 @@
     document.querySelectorAll('#nav [data-view]').forEach(b => {
       b.classList.toggle('active', b.dataset.view === (view === 'employee' ? 'employees' : view));
     });
-    setView('<div class="loading">Loading…</div>');
+    setView('<div class="loading"><span class="spinner"></span>Loading…</div>');
     window.scrollTo(0, 0);
     render();
   }
@@ -685,7 +717,7 @@
   }
 
   const actions = {
-    'refresh':          () => render(),
+    'refresh':          el => { btnBusy(el, true, 'Refreshing…'); render(); },
     'goto-adjustments': () => { state.adjTab = 'pending'; nav('adjustments'); },
     'dash-shift':       el => { state.dashDate = ymd(addDays(parseYmd(state.dashDate), Number(el.dataset.days))); render(); },
     'dash-today':       () => { state.dashDate = today(); render(); },
@@ -758,6 +790,7 @@
     clearKey();
     state.key = null;
     state.renderSeq++;
+    document.body.classList.remove('is-loading');
     closeModal();
     showLogin(msg);
   }
@@ -769,8 +802,7 @@
     const key = $('#loginKey').value.trim();
     if (!key) return;
     const btn = $('#loginForm button');
-    btn.disabled = true;
-    btn.textContent = 'Signing in…';
+    btnBusy(btn, true, 'Signing in…');
     $('#loginError').textContent = '';
     state.key = key;
     try {
@@ -781,8 +813,7 @@
       state.key = null;
       $('#loginError').textContent = err.message;
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Sign in';
+      btnBusy(btn, false);
     }
   });
 

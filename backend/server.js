@@ -49,10 +49,17 @@ app.post('/adjustment', auth, async (req, res) => {
   const { username, startTime, endTime, duration, status, note } = req.body;
   if (!username || !note) return res.status(400).json({ error: 'username and note required' });
 
+  let adj;
   try {
-    const adj = await db.insertAdjustment({ username, startTime, note });
+    adj = await db.insertAdjustment({ username, startTime, note });
+  } catch (err) {
+    console.error('Adjustment error:', err.message);
+    return res.status(500).json({ error: err.message });
+  }
 
-    // Email owner — this stays
+  // The request is saved; a failed email must not make the app retry and create duplicates
+  let emailed = true;
+  try {
     const tz    = { timeZone: db.APP_TZ };
     const start = new Date(startTime).toLocaleTimeString('en-GB', { ...tz, hour: '2-digit', minute: '2-digit' });
     const end   = new Date(endTime).toLocaleTimeString('en-GB', { ...tz, hour: '2-digit', minute: '2-digit' });
@@ -73,12 +80,12 @@ app.post('/adjustment', auth, async (req, res) => {
         `Review it: https://${req.get('host')}/admin#adjustments`,
       ].join('\n'),
     });
-
-    res.json({ ok: true, adjustment: adj });
   } catch (err) {
-    console.error('Adjustment error:', err.message);
-    res.status(500).json({ error: err.message });
+    emailed = false;
+    console.error('Adjustment email failed:', err.message);
   }
+
+  res.json({ ok: true, adjustment: adj, emailed });
 });
 
 // ── Get sessions for a user + date (for app dashboard) ───────────────────────

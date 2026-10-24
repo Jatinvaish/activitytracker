@@ -69,7 +69,20 @@
     .adj-form  { margin-top: 0.5rem; display: flex; gap: 0.4rem; }
     .adj-input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 0.3rem 0.6rem; color: #e0e0e0; font-size: 0.78rem; outline: none; }
     .adj-input:focus { border-color: #c89050; }
-    .btn-send  { background: #c89050; color: #0a0a0a; border: none; border-radius: 4px; padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+    .btn-send  { background: #c89050; color: #0a0a0a; border: none; border-radius: 4px; padding: 0.3rem 0.7rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; white-space: nowrap; }
+    .btn-send:disabled, .adj-input:disabled { opacity: 0.6; cursor: wait; }
+    .adj-error { font-size: 0.72rem; color: #e07a8b; margin-top: 0.3rem; }
+    .adj-done  { font-size: 0.72rem; color: #4caf87; margin-top: 0.3rem; }
+
+    .spinner {
+      display: inline-block; width: 12px; height: 12px; margin-right: 0.4rem;
+      border: 2px solid rgba(0, 0, 0, 0.25); border-top-color: currentColor;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+    }
+    #startBtn .spinner { width: 14px; height: 14px; vertical-align: -2px; }
+    #startBtn:disabled { cursor: wait; }
+    #nameError { min-height: 1em; font-size: 0.8rem; color: #e07a8b; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .empty { color: #333; font-size: 0.85rem; padding: 2rem; text-align: center; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; } }
@@ -82,6 +95,7 @@
   <p>Enter your name to start tracking</p>
   <input type="text" id="nameInput" placeholder="Your name…" autocomplete="off" />
   <button id="startBtn" onclick="submitName()">Start Tracking</button>
+  <div id="nameError" role="alert"></div>
 </div>
 
 <div id="dashboard">
@@ -133,11 +147,23 @@ nameInput.onkeydown = function(e) {
   if (e.key === 'Enter') submitName();
 };
 
-function submitName() {
+async function submitName() {
   const username = nameInput.value.trim();
-  if (!username) return;
-  ipcRenderer.send('name-set', username);
-  beginTracking(username);
+  if (!username || startBtn.disabled) return;
+  const errEl = document.getElementById('nameError');
+  errEl.textContent = '';
+  startBtn.disabled = true;
+  nameInput.disabled = true;
+  startBtn.innerHTML = '<span class="spinner"></span>Starting…';
+  try {
+    await ipcRenderer.invoke('name-set', username);
+    beginTracking(username);
+  } catch (e) {
+    errEl.textContent = 'Could not save your name. Please try again.';
+    startBtn.disabled = false;
+    nameInput.disabled = false;
+    startBtn.textContent = 'Start Tracking';
+  }
 }
 
 // ── On load: check if we already have a username (silent start) ───────────────
@@ -349,32 +375,53 @@ function showAdjForm(idx) {
   container.innerHTML =
     '<div class="adj-form">' +
       '<input class="adj-input" id="adjNote-' + idx + '" placeholder="Describe the adjustment…" />' +
-      '<button class="btn-send" onclick="submitAdj(' + idx + ')">Send</button>' +
-    '</div>';
+      '<button class="btn-send" id="adjSend-' + idx + '" onclick="submitAdj(' + idx + ')">Send</button>' +
+    '</div>' +
+    '<div class="adj-error" id="adjErr-' + idx + '" role="alert"></div>';
   var input = document.getElementById('adjNote-' + idx);
-  if (input) input.focus();
+  if (input) {
+    input.focus();
+    input.onkeydown = function(e) { if (e.key === 'Enter') submitAdj(idx); };
+  }
 }
 
 async function submitAdj(idx) {
-  var noteEl = document.getElementById('adjNote-' + idx);
-  if (!noteEl) return;
+  var noteEl  = document.getElementById('adjNote-' + idx);
+  var sendBtn = document.getElementById('adjSend-' + idx);
+  var errEl   = document.getElementById('adjErr-' + idx);
+  if (!noteEl || !sendBtn || sendBtn.disabled) return;
   var note    = noteEl.value.trim();
   var session = sessions[idx];
-  if (!note) return;
+  if (!note) { errEl.textContent = 'Please describe the adjustment.'; return; }
+
+  errEl.textContent = '';
+  noteEl.disabled  = true;
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<span class="spinner"></span>Sending…';
 
   try {
-    await fetch(BACKEND_URL + '/adjustment', {
+    var res = await fetch(BACKEND_URL + '/adjustment', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-secret': API_SECRET },
       body:    JSON.stringify(Object.assign({}, session, { note: note })),
     });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
     adjSentMap[idx] = true;
     var btn = document.getElementById('adjBtn-' + idx);
     if (btn) { btn.textContent = '✓ Sent'; btn.classList.add('sent'); btn.disabled = true; btn.removeAttribute('onclick'); }
     var adjDiv = document.getElementById('adj-' + idx);
-    if (adjDiv) adjDiv.innerHTML = '<div style="font-size:0.72rem;color:#4caf87;margin-top:0.3rem">Request sent: "' + note + '"</div>';
-  } catch(e) {
-    alert('Failed to send. Please try again.');
+    if (adjDiv) {
+      var done = document.createElement('div');
+      done.className = 'adj-done';
+      done.textContent = 'Request sent: "' + note + '"';
+      adjDiv.replaceChildren(done);
+    }
+  } catch (e) {
+    errEl.textContent = 'Could not send the request. Check your internet connection and try again.';
+    noteEl.disabled  = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send';
   }
 }
 </script>
